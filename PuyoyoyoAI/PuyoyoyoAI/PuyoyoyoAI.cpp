@@ -63,40 +63,12 @@ LRESULT CALLBACK NewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 }
 
 LRESULT CALLBACK OverlayWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-    static int originalWidth = 315; // 初期幅
-    static int originalHeight = 360; // 初期高さ
     switch (message) {
-
-    case WM_SIZE:
+    case WM_PAINT:
     {
-        static bool resizing = false;
-        if (resizing) break; // 無限ループ防止
-
-        resizing = true;
-
-        // クライアントサイズ取得
-        RECT rect;
-        GetWindowRect(hWnd, &rect);
-
-        int x = rect.left;
-        int y = rect.top;
-        int width = rect.right - rect.left;
-        int height = rect.bottom - rect.top;
-
-        // アスペクト比維持（例：315x360）
-        float aspect = 315.0f / 360.0f;
-        if (width > height * aspect) {
-            width = (int)(height * aspect);
-        }
-        else {
-            height = (int)(width / aspect);
-        }
-
-        SetWindowPos(hWnd, NULL, x, y, width, height, SWP_NOZORDER | SWP_NOMOVE);
-
-        resizing = false;
+        OverlayPaint();
+        break;
     }
-    break;
     case WM_ERASEBKGND:
     {
         HDC hdc = (HDC)wParam;
@@ -107,7 +79,14 @@ LRESULT CALLBACK OverlayWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
         ExtTextOut(hdc, 0, 0, ETO_OPAQUE, &rect, nullptr, 0, nullptr);
         return 1;
     }
-    return 0;
+    case WM_GETMINMAXINFO:
+    {
+        MINMAXINFO* pMinMax = (MINMAXINFO*)lParam;
+        pMinMax->ptMinTrackSize.x = OVERLAY_WIDTH; // 最小幅
+        pMinMax->ptMinTrackSize.y = OVERLAY_HEIGHT; // 最小高さ
+        pMinMax->ptMaxTrackSize.x = OVERLAY_WIDTH; // 最大幅
+        pMinMax->ptMaxTrackSize.y = OVERLAY_HEIGHT; // 最大高さ
+    }
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
