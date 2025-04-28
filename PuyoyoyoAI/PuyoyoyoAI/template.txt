@@ -1,0 +1,30 @@
+Template example:
+https://www.puyop.com/s/
+#1 GTR
+o09ihxpskrbs9qi
+#2 Meri
+w009c9zjxAbsrqj9ax
+#3 GTR
+o0iikxpscrbp9qh
+#4 Fron
+g00o0rAzzr9xqk99hA
+#5 GTR
+o0rAzbphxrak9kx
+#6 GTR
+o0iAyqpkrraA9iz
+#7 Fron
+g00o02Ayjrbqqks9hA
+#8 Meri
+o009crqzzrayikk9cy
+#9 Meri
+o2oAjiycqrqz9aA
+#10 Meri
+o2wAjsybirqq9aA
+#11 Fron
+g00o02AzirbAqkr9hy
+#12 Fron
+g00o03Ayyrciqkr9hz
+#13 GTR
+o2jAyqpjArai9kz
+-------------- Not Implemented --------------
+#14
