@@ -13,7 +13,7 @@
 #define BLACK RGB(0,0,0)
 
 
-COLORREF getColor(int num) {
+static COLORREF getColor(int num) {
     switch (num) {
     case 0: return RED;
     case 1: return YELLOW;

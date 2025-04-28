@@ -1085,7 +1085,7 @@ struct result {
     int value;
 };
 
-static int FieldEvaluation(int* localFloor)
+static int FieldEvaluation(const int* localFloor)
 {
     int fieldScore = 0;
     for (int i = 0; i < 6; i++)
@@ -1517,7 +1517,7 @@ static int Simulation(unsigned __int64* fieldPointer, int* floorPointer, std::de
     }
 }*/
 
-static std::pair<int, int> ProcessK( const int k, const unsigned __int8 Puyo[2], const unsigned __int64* fieldPointer, int* floorPointer, std::deque<int> dis) {
+static std::pair<int, int> ProcessK( const int k, const unsigned __int8 Puyo[2], const unsigned __int64* fieldPointer, const int* floorPointer, std::deque<int> dis) {
     int score = 0;
     unsigned __int64 copyFi[6] = { 0 };
     int copyFl[6] = { 0 };
@@ -1625,8 +1625,7 @@ void Search() {
 
                 futures.push_back(std::async(std::launch::async, [k, puyoLocal, copyFieldLocal, copyFloorLocal, dis]() -> std::pair<int, int> {
                     try {
-                        int* floorPointer = *copyFloorLocal[0];
-                        return ProcessK(k, puyoLocal, copyFieldLocal, floorPointer, dis);
+                        return ProcessK(k, puyoLocal, copyFieldLocal, copyFloorLocal, dis);
                     }
                     catch (const std::exception& e) {
                         std::cerr << "Exception in ProcessK: " << e.what() << '\n';
