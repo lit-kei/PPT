@@ -23,9 +23,12 @@
 
 extern HDC hMemDC;
 extern HWND hNewWnd;
+extern HDC overlayDC;
+extern HWND overlayWnd;
 extern WCHAR buf[256];
 extern int color;
 extern int place;
+extern bool assist;
 
 static PPTAIHelper PPT;
 static int cursorX, cursorY;
@@ -58,7 +61,6 @@ const __int8 idealHeight[6] = { 1, 0, 0, 0, 0, 1 };
 
 static unsigned int frameCount = 0;
 
-bool assist = true;
 
 // î’ñ ÇÃÉTÉCÉY
 const int ROWS = 12;
@@ -230,7 +232,7 @@ static bool detectChain(unsigned __int64* fieldPointer, std::deque<int>& dis, __
     return chainDetected;
 }
 
-static void DrawString(HDC hdc, int x, int y, WCHAR* format, ...) {
+void DrawString(HDC hdc, int x, int y, WCHAR* format, ...) {
     va_list args;
     va_start(args, format);
     WCHAR buf[256];
@@ -1779,6 +1781,8 @@ static void BattleUpdate()
 
     Auto();
 
+    DrawString(overlayDC, 0, 20, (WCHAR*)L"Hello, World!");
+    InvalidateRect(overlayWnd, nullptr, FALSE);
     {
         DrawString(hMemDC, 0, 80, (WCHAR*)L"NPuyo = {%d,%d}", nextPuyo[0], nextPuyo[1]);
         DrawString(hMemDC, 0, 100, (WCHAR*)L"NNPuyo = {%d,%d}", nextNextPuyo[0], nextNextPuyo[1]);
