@@ -29,6 +29,7 @@ extern WCHAR buf[256];
 extern int color;
 extern int place;
 extern bool assist;
+extern int put[2][3];
 
 static PPTAIHelper PPT;
 static int cursorX, cursorY;
@@ -859,7 +860,7 @@ static void ImportField()
         Field[i] = 0b0;
         for (int j = 0; j < 12; j++)
         {
-            __int8 color = JudgementColor(104 + i * 21, 288 - j * 20);
+            __int8 color = JudgementColor(105 + i * 21, 288 - j * 20);
             if (color == 0)
             {
                 fieldFloor[i] = j;
@@ -1014,11 +1015,29 @@ static void IntToWCHAR(int num, __int8 col1, __int8 col2,int value) {
     }
     color = (col1 - 1) << 3 | (col2 - 1);
     place = num;
+    put[0][2] = col1;
+    put[1][2] = col2;
     if (num <= 11) {
         wcscpy_s(base, _ARRAYSIZE(base), L"%d—ñ–Ú‚É%ls(ã),%ls(‰º)");
         Column = num % 6 + 1;
         newDrawString(base, Column, getColor(num <= 5 ? col1 : col2), getColor(num <= 5 ? col2 : col1));
         //newDrawString((WCHAR*)L"Score: %d", value);
+        if (num <= 5)
+        {
+            put[0][0] = num;
+            put[1][0] = num;
+            put[0][1] = fieldFloor[num];
+            put[1][1] = fieldFloor[num];
+        }
+        else 
+        {
+            int i = num - 6;
+            put[0][0] = i;
+            put[1][0] = i;
+            put[0][1] = fieldFloor[i];
+            put[1][1] = fieldFloor[i];
+            // ‘±‚«Anum‚ª11ˆÈã‚ÌŽž‚Ìˆ—
+        }
     }
     else {
         wcscpy_s(base, _ARRAYSIZE(base), L"%d, %d—ñ–Ú‚É%ls(¶),%ls(‰E)");
@@ -1026,6 +1045,8 @@ static void IntToWCHAR(int num, __int8 col1, __int8 col2,int value) {
         newDrawString(base, Column, Column + 1, getColor(num <= 16 ? col1 : col2), getColor(num <= 16 ? col2 : col1));
         //newDrawString((WCHAR*)L"Score: %d", value);
     }
+
+
 }
 static bool CanPut(int num, int* floorPointer)
 {
@@ -1600,6 +1621,8 @@ void Search() {
         Puyo[1] = color[i][1];
         for (int j = 0; j < SEARCH_WIDTH; j++) {
             if (i == 0 && j == 1) break;
+            memcpy(copyField, Field, sizeof(__int64) * 6);
+            memcpy(copyFloor, fieldFloor, sizeof(int) * 6);
             if (i != 0)
             {
                 if (value[i - 1][j][0] == 0) continue;
@@ -1676,6 +1699,8 @@ void Search() {
     puyoNum = tmp;
 
     int place = value[best[1]][0][1] >> 5;
+    memcpy(copyField, Field, sizeof(__int64) * 6);
+    memcpy(copyFloor, fieldFloor, sizeof(int) * 6);
     for (int i = 0; i < best[1] - 1; i++) {
         place = value[best[1] - i][place][1] >> 5;
     }
@@ -1780,26 +1805,23 @@ static void BattleUpdate()
     Hoge(1);
 
     Auto();
-
-    DrawString(overlayDC, 0, 20, (WCHAR*)L"Hello, World!");
-    InvalidateRect(overlayWnd, nullptr, FALSE);
-    {
+    /* {
         DrawString(hMemDC, 0, 80, (WCHAR*)L"NPuyo = {%d,%d}", nextPuyo[0], nextPuyo[1]);
         DrawString(hMemDC, 0, 100, (WCHAR*)L"NNPuyo = {%d,%d}", nextNextPuyo[0], nextNextPuyo[1]);
         DrawString(hMemDC, 0, 140, (WCHAR*)L"scene = %d", scene);
         DrawString(hMemDC, 0, 180, (WCHAR*)L"Time:%f", Time);
         DrawString(hMemDC, 0, 200, (WCHAR*)L"floor = %d", fieldFloor[0]);
     }
-    {
+     {
         for (int i = 0; i < 6; i++)
         {
             for (int j = 0; j < 12; j++)
             {
                 WCHAR text[] = L"%d";
-                DrawString(hMemDC, 104 + i * 21, 288 - j * 20, text, (copyField[i] >> j * 3) & 0b111);
+                DrawString(hMemDC, 105 + i * 21, 288 - j * 20, text, (copyField[i] >> j * 3) & 0b111);
             }
         }
-    }
+    }*/
 
     {
         static int reliability = 0;
@@ -1932,6 +1954,7 @@ void onButtonCommand(HWND hWnd, WORD code)
         assist = !assist;
         if (!assist) newDrawString((WCHAR*)L"Automatic Control");
         else newDrawString((WCHAR*)L"Assisting");
+        InvalidateRect(overlayWnd, nullptr, false);
     }
 }
 

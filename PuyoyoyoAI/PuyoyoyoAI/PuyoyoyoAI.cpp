@@ -22,6 +22,7 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // メイン ウィンドウ ク
 WCHAR buf[256];
 int color = 0;
 int place = -1;
+int put[2][3] = { {0,0,1}, {0,1,1} };
 bool assist = true;
 
 // このコード モジュールに含まれる関数の宣言を転送します:
@@ -76,15 +77,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
     }
     case WM_PAINT:
     {
-        PatBlt(overlayDC, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT, WHITENESS);
-        if (assist)
-        {
-            TextOut(overlayDC, 10, 10, L"Assist Mode", 11);
-        }
-        else
-        {
-            TextOut(overlayDC, 10, 10, L"Auto Mode", 9);
-        }
+        
         //TextOut(overlayDC, 10, 10, L"こんにちは", 4);
         //DrawString(overlayDC, 10, 50, (WCHAR*)L"Hello", 5);
         OverlayPaint();

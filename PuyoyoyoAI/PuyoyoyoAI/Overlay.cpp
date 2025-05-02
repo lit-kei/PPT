@@ -15,81 +15,76 @@
 
 static COLORREF getColor(int num) {
     switch (num) {
-    case 0: return RED;
-    case 1: return YELLOW;
-    case 2: return GREEN;
-    case 3: return BLUE;
-    case 4: return PURPLE;
+    case 1: return RED;
+    case 2: return YELLOW;
+    case 3: return GREEN;
+    case 4: return BLUE;
+    case 5: return PURPLE;
     default: return BLACK; // デフォルトは黒
     }
 }
 
-extern HWND hNewWnd;
-extern WCHAR buf[256];
-extern int place;
-extern int color;
+extern HWND overlayWnd;
+extern HDC overlayDC;
+extern bool assist;
+extern int put[2][3];
 
 void OverlayPaint() {
     PAINTSTRUCT ps;
-    HDC hdc = BeginPaint(hNewWnd, &ps);
+    HDC hdc = BeginPaint(overlayWnd, &ps);
 
-    // 背景を白色で塗りつぶす
-    HBRUSH hBrush = CreateSolidBrush(WHITE);
+    // メモリDCと互換ビットマップ作成
+    HDC memDC = CreateCompatibleDC(hdc);
+    HBITMAP memBitmap = CreateCompatibleBitmap(hdc, OVERLAY_WIDTH, OVERLAY_HEIGHT);
+    HBITMAP oldBitmap = (HBITMAP)SelectObject(memDC, memBitmap);
 
-    FillRect(hdc, &ps.rcPaint, hBrush);
-    HPEN hPen = CreatePen(PS_SOLID, 4, WHITE);
-    // ブラシとペンを描画コンテキストに選択
-    HGDIOBJ oldBrush = SelectObject(hdc, hBrush);
-    HGDIOBJ oldPen = SelectObject(hdc, hPen);
-    for (int i = 0; i < 2; i++)
-    {
-        for (int j = 0; j < 6; j++)
-        {
-            Rectangle(hdc, j * 50, 250 - i * 50, j * 50 + 50, 300 - i * 50);
+    // 背景を白で塗りつぶし（PatBlt はメモリDCに対して）
+    PatBlt(memDC, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT, WHITENESS);
+
+    // フィールドのマスを描画
+    for (int i = 0; i < 13; i++) {
+        for (int j = 0; j < 6; j++) {
+            Rectangle(memDC, 20 + j * 21, 40 + i * 20, j * 21 + 21 + 20, 60 + i * 20);
         }
     }
-    if (place != -1)
+    HPEN hPen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+    HPEN hOldPen = (HPEN)SelectObject(memDC, hPen);
+    HBRUSH hOldBrush = (HBRUSH)SelectObject(memDC, CreateSolidBrush(BLACK));
+    if (put[0][0] != -1)
     {
-        HPEN shaft = CreatePen(PS_SOLID, 4, getColor(color & 0b111));
-        HPEN child = CreatePen(PS_SOLID, 4, getColor(color >> 3));
-        if (place <= 11)
-        {
-            bool hoge = place <= 5;
-            SelectObject(hdc, shaft);
-            Rectangle(hdc, (place % 6) * 50, hoge ? 250 : 200, (place % 6) * 50 + 50, hoge ? 300 : 250);
-            SelectObject(hdc, child);
-            Rectangle(hdc, (place % 6) * 50, hoge ? 200 : 250, (place % 6) * 50 + 50, hoge ? 250 : 300);
-        }
-        else
-        {
-            bool hoge = place <= 16;
-            int n = place - 12;
-            if (n >= 5) n -= 5;
-            SelectObject(hdc, shaft);
-            Rectangle(hdc, hoge ? n * 50 + 50 : n * 50, 250, hoge ? n * 50 + 100 : n * 50 + 50, 300);
-            SelectObject(hdc, child);
-            Rectangle(hdc, hoge ? n * 50 : n * 50 + 50, 250, hoge ? n * 50 + 50 : n * 50 + 100, 300);
-        }
-        SelectObject(hdc, oldBrush);
-        SelectObject(hdc, oldPen);
-
-        DeleteObject(shaft);
-        DeleteObject(child);
+        HBRUSH hBrush = CreateSolidBrush(getColor(put[0][2]));
+        SelectObject(memDC, hBrush);
+        Rectangle(memDC, 20 + put[0][0] * 21, 40 + put[0][1] * 20, put[0][0] * 21 + 21 + 20, 60 + put[0][1] * 20);
+        DeleteObject(hBrush);
     }
-
-    // リソースを解放
-
+    if (put[1][0] != -1)
+    {
+        HBRUSH hBrush = CreateSolidBrush(getColor(put[1][2]));
+        SelectObject(memDC, hBrush);
+        Rectangle(memDC, 20 + put[1][0] * 21, 40 + put[1][1] * 20, put[1][0] * 21 + 21 + 20, 60 + put[1][1] * 20);
+        DeleteObject(hBrush);
+    }
+    SelectObject(memDC, hOldPen);
+    SelectObject(memDC, hOldBrush);
     DeleteObject(hPen);
-    DeleteObject(hBrush);
 
-    SetBkColor(hdc, GRAY);
-    RECT rect;
-    SetRect(&rect, 10, 10, 300, 60); // 矩形の座標を設定
-    ExtTextOut(hdc, 0, 0, ETO_OPAQUE, &rect, NULL, 0, NULL);
-    SetTextColor(hdc, RGB(0, 0, 0));
+    // モード表示
+    if (assist) {
+        TextOut(memDC, 10, 10, L"Assist Mode", 11);
+    }
+    else {
+        TextOut(memDC, 10, 10, L"Auto Mode", 9);
+    }
 
-    TextOut(hdc, 10, 10, buf, wcslen(buf));
-    EndPaint(hNewWnd, &ps);
+    // メモリDCを実画面に転送（BitBlt）
+    BitBlt(hdc, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT, memDC, 0, 0, SRCCOPY);
+
+    // リソース解放
+    SelectObject(memDC, oldBitmap);
+    DeleteObject(memBitmap);
+    DeleteDC(memDC);
+
+    EndPaint(overlayWnd, &ps);
 }
 
 void OverlayDestroy() {
