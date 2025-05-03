@@ -10,6 +10,7 @@
 #include "iostream"
 #include "fstream"
 #include "cstdio"
+#include "vector"
 
 #define MAX_LOADSTRING 100
 
@@ -24,6 +25,7 @@ int color = 0;
 int place = -1;
 int put[2][3] = { {0,0,1}, {0,1,1} };
 bool assist = true;
+std::vector<Data> sub;
 
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
