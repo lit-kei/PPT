@@ -832,11 +832,16 @@ static void ChangePuyo()
         {
             conv[i] = 0;
         }
+        static int data[2][3] = { {0, 0, -1}, {0, 0, -1} };
+        
+        std::copy(&data[0][0], &data[0][0] + 2 * 3, &put[0][0]);
+        InvalidateRect(overlayWnd, nullptr, false);
         ImportField();
+        nextNextPuyo[0] = JudgementColor(263, 106);
+        nextNextPuyo[1] = JudgementColor(260, 125);
         for (int i = 0; i < 2; i++)
         {
             nextPuyo[i] = JudgementColor(251, 65 + i * 20);
-            nextNextPuyo[i] = JudgementColor(263, 106 + i * 20);
             saveNext[i] = nextPuyo[i];
             saveNextNext[i] = nextNextPuyo[i];
             RaiseFlag(nextPuyo[i]);
@@ -1793,6 +1798,7 @@ void Search() {
     std::chrono::duration<double> elapsed = end - start;
     Time = elapsed.count();
     WCHAR Text[] = L"Search.Time:%lf";
+    
     LogMessage(Text, Time);
 }
 
@@ -1901,7 +1907,7 @@ static void BattleUpdate()
     {
         static int reliability = 0;
         static bool old = true;
-        if (saveNext[0] != JudgementColor(251, 65) || saveNext[1] != JudgementColor(251, 85) || saveNextNext[0] != JudgementColor(263, 106) || saveNextNext[1] != JudgementColor(263, 126))
+        if (saveNext[0] != JudgementColor(251, 65) || saveNext[1] != JudgementColor(251, 85) || saveNextNext[0] != JudgementColor(263, 106) || saveNextNext[1] != JudgementColor(260, 125))
         {
             reliability = 0;
             if (!old) old = true;
@@ -1936,7 +1942,7 @@ static void BattleUpdate()
                 nextPuyo[0] = nextNextPuyo[0];
                 nextPuyo[1] = nextNextPuyo[1];
                 nextNextPuyo[0] = JudgementColor(263, 106);
-                nextNextPuyo[1] = JudgementColor(263, 126);
+                nextNextPuyo[1] = JudgementColor(260, 125);
                 RaiseFlag(nextNextPuyo[0]);
                 RaiseFlag(nextNextPuyo[1]);
                 if (scene == 0 || assist) CheckArrays();
@@ -1955,15 +1961,16 @@ static void BattleUpdate()
         saveNext[0] = JudgementColor(251, 65);
         saveNext[1] = JudgementColor(251, 85);
         saveNextNext[0] = JudgementColor(263, 106);
-        saveNextNext[1] = JudgementColor(263, 126);
+        saveNextNext[1] = JudgementColor(260, 125);
        /* DrawRGBAt(251, 65);
         DrawRGBAt(251, 85);
         DrawRGBAt(263, 106);
-        DrawRGBAt(263, 126);*/
+        DrawRGBAt(263, 125);*/
         DrawString(hMemDC, 251, 65, (WCHAR*)L"%d", JudgementColor(251, 65));
         DrawString(hMemDC, 251, 85, (WCHAR*)L"%d", JudgementColor(251, 85));
         DrawString(hMemDC, 263, 106, (WCHAR*)L"%d", JudgementColor(263, 106));
-        DrawString(hMemDC, 263, 126, (WCHAR*)L"%d", JudgementColor(263, 126));
+        DrawString(hMemDC, 263, 125, (WCHAR*)L"%d", JudgementColor(260, 125));
+        //DrawRGBAt(260, 125);
     }
     ChangePuyo();
 

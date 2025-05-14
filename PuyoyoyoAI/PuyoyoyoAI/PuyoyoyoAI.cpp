@@ -23,7 +23,7 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // メイン ウィンドウ ク
 WCHAR buf[256];
 int color = 0;
 int place = -1;
-int put[2][3] = { {0,0,1}, {0,1,1} };
+int put[2][3] = { {0,0,-1}, {0,0,-1} };
 bool assist = true;
 std::vector<Data> sub;
 
@@ -276,7 +276,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_CREATE:
     {
-        DeleteLogFile("application.log");
+        //DeleteLogFile("application.log");
         HDC hdc = GetDC(hWnd);
         hMemDC = CreateCompatibleDC(hdc);
         HBITMAP hBitmap = CreateCompatibleBitmap(hdc, CLIENT_WIDTH, CLIENT_HEIGHT);
