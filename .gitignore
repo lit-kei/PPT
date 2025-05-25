@@ -4,3 +4,4 @@ batches/
 *.obj
 *.suo
 *.pdb
+*.ipch
