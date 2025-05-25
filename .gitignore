@@ -1,1 +1,6 @@
 .vs/
+batches/
+*.log
+*.obj
+*.suo
+*.pdb

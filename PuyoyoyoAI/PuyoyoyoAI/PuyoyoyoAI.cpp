@@ -276,7 +276,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_CREATE:
     {
-        //DeleteLogFile("application.log");
+        DeleteLogFile("application.log");
         HDC hdc = GetDC(hWnd);
         hMemDC = CreateCompatibleDC(hdc);
         HBITMAP hBitmap = CreateCompatibleBitmap(hdc, CLIENT_WIDTH, CLIENT_HEIGHT);

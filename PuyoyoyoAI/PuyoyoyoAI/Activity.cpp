@@ -39,15 +39,19 @@ static int nextPuyo[] = { 0,0 };
 static int nextNextPuyo[] = { 0,0 };
 static int saveNext[] = { 0,0 };
 static int saveNextNext[] = { 0,0 };
+static int ENextNext[2] = { 0 };
 static int scene = 0;
 static int puyoNum = 0;
+static int EPuyo = 0;
 static double Time = 0;
 static unsigned __int64 Field[6] = { 0 };
 static unsigned __int64 copyField[6] = { 0 };
+static unsigned __int64 EField[6] = { 0 };
 static unsigned __int64 tmpField[6] = { 0 };
 static unsigned __int64 tmpField1[6] = { 0 };
 static unsigned __int64 tmpField2[6] = { 0 };
 static int copyFloor[6] = { 0 };
+static int EFloor[6] = { 0 };
 static int tmpFloor[6] = { 0 };
 static int tmpFloor1[6] = { 0 };
 static int tmpFloor2[6] = { 0 };
@@ -816,7 +820,31 @@ static void CheckArrays()
     }
 }
 
-static void ChangePuyo()
+static void ImportEnemy() {
+    EPuyo = 0;
+    for (int i = 0; i < 6; i++)
+    {
+        EField[i] = 0b0;
+        for (int j = 0; j < 12; j++)
+        {
+            __int8 color = JudgementColor(430 + i * 21, 288 - j * 20);
+            if (color == 0)
+            {
+                EFloor[i] = j;
+
+                break;
+            }
+            else
+            {
+                EField[i] |= (__int64)color << (3 * j);
+            }
+            EFloor[i] = 12;
+        }
+        EPuyo += EFloor[i];
+    }
+}
+
+static void Init()
 {
     static bool Key = false, KeyOld = false;
 
@@ -837,8 +865,11 @@ static void ChangePuyo()
         std::copy(&data[0][0], &data[0][0] + 2 * 3, &put[0][0]);
         InvalidateRect(overlayWnd, nullptr, false);
         ImportField();
+        ImportEnemy();
         nextNextPuyo[0] = JudgementColor(263, 106);
         nextNextPuyo[1] = JudgementColor(260, 125);
+        ENextNext[0] = JudgementColor(371, 106);
+        ENextNext[1] = JudgementColor(371, 125);
         for (int i = 0; i < 2; i++)
         {
             nextPuyo[i] = JudgementColor(251, 65 + i * 20);
@@ -897,7 +928,6 @@ static void ImportField()
         puyoNum += fieldFloor[i];
     }
 }
-
 static int TemplateEvaluation(unsigned __int64* Pointer, unsigned __int8 Template)
 {
     int score = 0;
@@ -1853,7 +1883,7 @@ static void Draw()
     PPT.DrawCapturedScreen(hMemDC, 0, 0);
 }
 
-static void Hoge(int color)
+static void DetectColor(int color)
 {
     static bool Key = false, KeyOld = false;
     KeyOld = Key;
@@ -1874,15 +1904,42 @@ static void Hoge(int color)
         newDrawString((WCHAR*)L"Not Found");
     }
 }
+static void OvserveEnemy() {
+    static int saveNext[2] = { 0 };
+    static int saveNextNext[2] = { 0 };
+    static int reliability = 0;
+    static bool old = true;
+    if (saveNext[0] != JudgementColor(389, 65) || saveNext[1] != JudgementColor(389, 85) || saveNextNext[0] != JudgementColor(371, 106) || saveNextNext[1] != JudgementColor(371, 125))
+    {
+        reliability = 0;
+        if (!old) old = true;
+    }
+    else
+    {
+        reliability++;
+        if (reliability >= 2 && old && saveNext[0] == ENextNext[0] && saveNext[1] == ENextNext[1])
+        {
+            ImportEnemy();
+            ENextNext[0] = JudgementColor(371, 106);
+            ENextNext[1] = JudgementColor(371, 125);
+            old = false;
+        }
+    }
+    saveNext[0] = JudgementColor(389, 65);
+    saveNext[1] = JudgementColor(389, 85);
+    saveNextNext[0] = JudgementColor(371, 106);
+    saveNextNext[1] = JudgementColor(371, 125);
+}
 
 static void BattleUpdate()
 {
     //newDrawString((WCHAR*)L"%d", frameCount);
     //MakeTemplate();
 
-    Hoge(1);
 
-    Auto();
+    //Auto();
+    DrawString(hMemDC, 0, 20, (WCHAR*)L"Puyo = %d", puyoNum);
+    DrawString(hMemDC, 0, 36, (WCHAR*)L"EPuyo = %d", EPuyo);
     /* {
         DrawString(hMemDC, 0, 80, (WCHAR*)L"NPuyo = {%d,%d}", nextPuyo[0], nextPuyo[1]);
         DrawString(hMemDC, 0, 100, (WCHAR*)L"NNPuyo = {%d,%d}", nextNextPuyo[0], nextNextPuyo[1]);
@@ -1903,6 +1960,7 @@ static void BattleUpdate()
     
     //DrawString(hMemDC, 105, 288, (WCHAR*)L"%d", JudgementColor(147, 268));
     //DrawRGBAt(105, 268);
+    OvserveEnemy();
 
     {
         static int reliability = 0;
@@ -1972,12 +2030,13 @@ static void BattleUpdate()
         DrawString(hMemDC, 263, 125, (WCHAR*)L"%d", JudgementColor(260, 125));
         //DrawRGBAt(260, 125);
     }
-    ChangePuyo();
+    Init();
 
     // You can move the cursor with the cross key.
     // 十字キーでカーソルを動かせます。
     //MoveCursor();
     //DrawRGBAt(cursorX, cursorY);
+    //DrawString(hMemDC, cursorX, cursorY, (WCHAR*)L"(%d, %d) : %d", cursorX, cursorY, JudgementColor(cursorX, cursorY));
     //JudgementColor(cursorX, cursorY);
     //DrawRGBAt(215, 300);
     //gamestart d7,77,20 x-310,y-185
