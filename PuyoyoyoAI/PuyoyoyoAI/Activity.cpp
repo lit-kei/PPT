@@ -26,8 +26,7 @@ extern HWND hNewWnd;
 extern HDC overlayDC;
 extern HWND overlayWnd;
 extern WCHAR buf[256];
-extern int color;
-extern int place;
+extern int index;
 extern bool assist;
 extern int put[2][3];
 extern std::vector<Data> sub;
@@ -356,6 +355,11 @@ static std::pair<std::pair<int, int>, std::pair<int, int>> GetStarted(unsigned _
             *(fieldPointer + place) |= (unsigned __int64)childPuyo << (*(floorPointer + place)) * 3;
             *(floorPointer + place) += 1;
             //puyoNum++;
+
+            child.first = place;
+            shaft.second = *(floorPointer + place) - 2;
+            child.first = place;
+            shaft.second = *(floorPointer + place) - 1;
         }
         else
         {
@@ -367,11 +371,12 @@ static std::pair<std::pair<int, int>, std::pair<int, int>> GetStarted(unsigned _
             *(fieldPointer + place) |= (unsigned __int64)shaftPuyo << (*(floorPointer + place)) * 3;
             *(floorPointer + place) += 1;
             //puyoNum++;
+
+            shaft.first = place;
+            shaft.second = *(floorPointer + place) - 2;
+            child.first = place;
+            child.second = *(floorPointer + place) - 1;
         }
-        shaft.first = place;
-        shaft.second = *(floorPointer + place) - 2;
-        child.first = place;
-        child.second = *(floorPointer + place) - 1;
     }
     else
     {
@@ -384,7 +389,7 @@ static std::pair<std::pair<int, int>, std::pair<int, int>> GetStarted(unsigned _
                 *(floorPointer + place) += 1;
                 //puyoNum++;
                 child.first = place;
-                child.second = *(floorPointer + place - 1);
+                child.second = *(floorPointer + place) - 1;
             }
             if (*(floorPointer + place + 1) < 12)
             {
@@ -392,7 +397,7 @@ static std::pair<std::pair<int, int>, std::pair<int, int>> GetStarted(unsigned _
                 *(floorPointer + place + 1) += 1;
                 //puyoNum++;
                 shaft.first = place + 1;
-                shaft.second = *(floorPointer + place);
+                shaft.second = *(floorPointer + place) - 1;
             }
         }
         else
@@ -404,7 +409,7 @@ static std::pair<std::pair<int, int>, std::pair<int, int>> GetStarted(unsigned _
                 *(floorPointer + place) += 1;
                 //puyoNum++;
                 shaft.first = place;
-                shaft.second = *(floorPointer + place - 1);
+                shaft.second = *(floorPointer + place) - 1;
             }
             if (*(floorPointer + place + 1) < 12)
             {
@@ -412,7 +417,7 @@ static std::pair<std::pair<int, int>, std::pair<int, int>> GetStarted(unsigned _
                 *(floorPointer + place + 1) += 1;
                 //puyoNum++;
                 child.first = place + 1;
-                child.second = *(floorPointer + place);
+                child.second = *(floorPointer + place) - 1;
             }
         }
     }
@@ -811,7 +816,7 @@ static void RaiseFlag(int color)
     }
 }
 
-static void CheckArrays()
+static void CopyArrays()
 {
     for (int i = 0; i < 6; i++)
     {
@@ -836,11 +841,11 @@ static void ImportEnemy() {
             }
             else
             {
+                EPuyo += color != 6;
                 EField[i] |= (__int64)color << (3 * j);
             }
             EFloor[i] = 12;
         }
-        EPuyo += EFloor[i];
     }
 }
 
@@ -860,7 +865,7 @@ static void Init()
         {
             conv[i] = 0;
         }
-        static int data[2][3] = { {0, 0, -1}, {0, 0, -1} };
+        static int data[2][3] = { {-1, 0, 0}, {-1, 0, 0} };
         
         std::copy(&data[0][0], &data[0][0] + 2 * 3, &put[0][0]);
         InvalidateRect(overlayWnd, nullptr, false);
@@ -883,7 +888,7 @@ static void Init()
             copyFloor[i] = 0;
             copyField[i] = 0;
         }
-        CheckArrays();
+        CopyArrays();
     }
 }
 static void Auto()
@@ -912,7 +917,7 @@ static void ImportField()
         Field[i] = 0b0;
         for (int j = 0; j < 12; j++)
         {
-            __int8 color = JudgementColor(105 + i * 21, 288 - j * 20);
+            __int8 color = JudgementColor(104 + i * 21, 288 - j * 20);
             if (color == 0)
             {
                 fieldFloor[i] = j;
@@ -921,11 +926,11 @@ static void ImportField()
             }
             else
             {
+                puyoNum += color != 6;
                 Field[i] |= (__int64)color << (3 * j);
             }
             fieldFloor[i] = 12;
         }
-        puyoNum += fieldFloor[i];
     }
 }
 static int TemplateEvaluation(unsigned __int64* Pointer, unsigned __int8 Template)
@@ -1064,8 +1069,6 @@ static void IntToWCHAR(int num, __int8 col1, __int8 col2,int value) {
     if (col1 < 1 || col1 > 5 || col2 < 1 || col2 > 5) {
         return; // 範囲外の場合の処理
     }
-    color = (col1 - 1) << 3 | (col2 - 1);
-    place = num;
     if (num <= 11) {
         wcscpy_s(base, _ARRAYSIZE(base), L"%d列目に%ls(上),%ls(下)");
         Column = num % 6 + 1;
@@ -1183,12 +1186,12 @@ static void MakeTemplate() {
     static __int64 erase[6] = { 0 };
     int value[BEAM_DEPTH][BEAM_WIDTH][2] = { 0 };// [0] - score, [1] & 0b11111 - place, [1] >> 5 - id
     __int8 color[BEAM_DEPTH][2] = { 0 };
+    __int8 bestTemplate = -1;
     int Puyo[2] = { 0 };
     int place = 0;
     int score = 0;
     int parentScore = 0;
     int save = 0;
-    int tmp = 0;
     int best = 0;
     int fieldValue;
     SetTmp();
@@ -1266,6 +1269,7 @@ static void MakeTemplate() {
                 SetTmp1();
                 score = parentScore;
                 bool Chigiri = false;
+                __int8 Template = -1;
                 if (i >= 12)
                 {
                     if (i >= 17)
@@ -1285,7 +1289,10 @@ static void MakeTemplate() {
                     for (unsigned __int8 j = 0; j < T_COUNT; j++)
                     {
                         save = TemplateEvaluation(copyField, j) + fieldValue;
-                        if (score < save) score = save;
+                        if (score < save) {
+                            score = save;
+                            Template = j;
+                        }
                     }
                     if (Chigiri) score -= 500;
                     //LogMessage((WCHAR*)L"Score:%d(%d,%d,%d)", score, t, k, i);
@@ -1296,6 +1303,7 @@ static void MakeTemplate() {
                         {
                             if (value[t][m][0] < score)
                             {
+                                if (rank == 0) bestTemplate = Template;
                                 rank = m;
                                 for (int k = 1; k < BEAM_WIDTH - m; k++)
                                 {
@@ -1325,6 +1333,13 @@ static void MakeTemplate() {
         }
     }
 
+    std::vector<int> log = { place };
+    memcpy(copyField, Field, sizeof(__int64) * 6);
+    memcpy(copyFloor, fieldFloor, sizeof(int) * 6);
+    unsigned __int64 localFi[6];
+    int localFl[6];
+    memcpy(localFi, Field, sizeof(__int64) * 6);
+    memcpy(localFl, fieldFloor, sizeof(int) * 6);
     if (BEAM_DEPTH >= 2)
     {
         dropQueue.clear();
@@ -1332,13 +1347,28 @@ static void MakeTemplate() {
         for (int i = 0; i < BEAM_DEPTH - 1; i++)
         {
             place = value[BEAM_DEPTH - 1 - i][place][1]>>5;
-            if (i == BEAM_DEPTH - 2)
-            {
-                tmp = place;
-            }
+            log.push_back(place);
         }
     }
+    for (unsigned int i = 0; i < log.size(); i++)
+    {
+        const int element = log.back();
+        log.pop_back();
+        std::pair<std::pair<int, int>, std::pair<int, int>>Puyos = GetStarted(localFi, localFl, color[i][0], color[i][1], value[i][element][1] & 0b11111);
+        if (i == 0) continue;
+        Data stroke(std::make_tuple(0, 0, 0), std::make_tuple(0, 0, 0), 0);
+        std::get<0>(stroke.shaft) = Puyos.second.first;
+        std::get<0>(stroke.child) = Puyos.first.first;
+        std::get<1>(stroke.shaft) = Puyos.second.second;
+        std::get<1>(stroke.child) = Puyos.first.second;
+        std::get<2>(stroke.shaft) = color[i][0];
+        std::get<2>(stroke.child) = color[i][1];
+
+        sub.push_back(stroke);
+    }
     dropQueue.push_back(value[0][place][1]);
+    index = bestTemplate;
+    InvalidateRect(hNewWnd, nullptr, FALSE);
     if (assist)
     {
         GetStarted(copyField, copyFloor, nowPuyo[0], nowPuyo[1], value[0][place][1]);
@@ -1350,8 +1380,6 @@ static void MakeTemplate() {
         if (nextPuyo[0] < 1 || nextPuyo[0] > 5 || nextPuyo[1] < 1 || nextPuyo[1] > 5) {
             return; // 範囲外の場合の処理
         }
-        ::color = (nextPuyo[0] - 1) << 3 | (nextPuyo[1] - 1);
-        ::place = value[0][place][1];
         InvalidateRect(hNewWnd, nullptr, FALSE);
     }
 }
@@ -1403,206 +1431,6 @@ static int Simulation(unsigned __int64* fieldPointer, int* floorPointer, std::de
     }
     return bestScore;
 }
-/*static void Search()
-{
-    auto start = std::chrono::high_resolution_clock::now();
-    int SEARCH_DEPTH = (6 * 13 - puyoNum) / 2 + 4;
-    if (SEARCH_DEPTH > MAXIMUM_DEPTH) SEARCH_DEPTH = MAXIMUM_DEPTH;
-    short value[MAXIMUM_DEPTH][SEARCH_WIDTH][2] = { 0 };//[0] - score, [1] & 0b11111 - place, [1] >> 5 - id
-    __int8 color[MAXIMUM_DEPTH][2] = { 0 };
-    short best[2] = { 0 };
-    short nowBest[2] = { 0 };
-    unsigned __int8 Puyo[2] = { 0 };
-    short score = 0;
-    unsigned int Seed = frameCount;
-    int copyConv[4] = { 0 };
-    int count = 0;
-    int save = 0;
-    int copyApp = appearance;
-    int tmp = puyoNum;
-    unsigned __int64 bestField[6] = { 0 };
-    for (int i = 0; i < 4; i++)
-    {
-        if (conv[i] == 0)
-        {
-            int bitPos = bit_pos(copyApp) - 1;
-            copyConv[i] = bitPos + 1;
-            copyApp |= 1 << bitPos;
-        }
-        else
-        {
-            copyConv[i] = conv[i];
-        }
-    }
-    for (int i = 0; i < MAXIMUM_DEPTH; i++)
-    {
-        switch (i)
-        {
-        case 0:
-            color[0][0] = nextPuyo[0];
-            color[0][1] = nextPuyo[1];
-            break;
-        case 1:
-            color[1][0] = nextNextPuyo[0];
-            color[1][1] = nextNextPuyo[1];
-            break;
-        default:
-            Xorshift(&Seed);
-            __int8 num = Seed & 0b1111;
-            __int8 c = num & 0b11;
-            __int8 s = num >> 2;
-            color[i][0] = copyConv[c];
-            color[i][1] = copyConv[s];
-            break;
-        }
-    }
-    SetTmp1();
-    for (int i = 0; i < SEARCH_DEPTH; i++)
-    {
-        if (i == 1 && nowBest[0] > 2000) break;
-        Puyo[0] = color[i][0];
-        Puyo[1] = color[i][1];
-        for (int j = 0; j < SEARCH_WIDTH; j++)
-        {
-            auto hoge = std::chrono::high_resolution_clock::now();
-            puyoNum = tmp + 2 * j;
-            if (i == 0 && j == 1) break;
-            if (i != 0)
-            {
-                if (value[i - 1][j][0] == 0) continue;
-                int p = i;
-                while (p)
-                {
-                    int id = j;
-                    for (int q = 1; q < p; q++)
-                    {
-                        id = value[i - q][id][1] >> 5;
-                    }
-                    GetStarted(copyField, copyFloor, color[i - p][0], color[i - p][1], value[i - p][id][1] & 0b11111);
-                    p--;
-                }
-            }
-            for (int k = 0; k < 22; k++)
-            {
-                auto fuga = std::chrono::high_resolution_clock::now();
-                SetTmp();
-                score = 0;
-                GetStarted(copyField, copyFloor, Puyo[0], Puyo[1], k);
-                if (!detectChain())
-                {
-                    unsigned __int64 hoge[6] = { 0 };
-                    for (int l = 0; l < 6; l++)
-                    {
-                        hoge[l] = copyField[l];
-                    }
-                    score = Simulation() + FieldEvaluation();
-                    if (score > value[i][SEARCH_WIDTH - 1][0])
-                    {
-                        static int rank = 0;
-                        for (int l = 0; l < SEARCH_WIDTH; l++)
-                        {
-                            if (value[i][l][0] < score)
-                            {
-                                rank = l;
-                                for (int m = 1; m < SEARCH_WIDTH - l; m++)
-                                {
-                                    for (int n = 0; n < 2; n++)
-                                    {
-                                        value[i][SEARCH_WIDTH - m][n] = value[i][SEARCH_WIDTH - m - 1][n];
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                        if (score > best[0])
-                        {
-                            best[0] = score;
-                            best[1] = i;
-                            for (int l = 0; l < 6; l++)
-                            {
-                                bestField[l] = hoge[l];
-                            }
-                        }
-                        value[i][rank][0] = score;
-                        value[i][rank][1] = (j << 5) | k;
-                    }
-                }
-                /*else
-                {
-                    if (i != 0)
-                    {
-                        count = 0;
-                        while (true)
-                        {
-                            save = ChainStart(copyField, count);
-                            if (save == 0) break;
-                            score += save;
-                            count++;
-                            fall(copyField);
-                        }
-                        if (nowBest[0] < score)
-                        {
-                            nowBest[0] = score;
-                            nowBest[1] = k;
-                        }
-                    }
-                }
-                for (int l = 0; l < 6; l++)
-                {
-                    copyField[l] = tmpField[l];
-                    copyFloor[l] = tmpFloor[l];
-                }
-                auto end = std::chrono::high_resolution_clock::now();
-                std::chrono::duration<double> elapsed = end - fuga;
-                Time = elapsed.count();
-
-                WCHAR Text[] = L"Search.%d.%d.%d.Time:%lf";
-                LogMessage(Text, i, j, k, Time);
-            }
-            for (int l = 0; l < 6; l++)
-            {
-                copyField[l] = tmpField1[l];
-                copyFloor[l] = tmpFloor1[l];
-            }
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed = end - hoge;
-            Time = elapsed.count();
-
-            WCHAR Text[] = L"Search.%d.%d.Time:%lf";
-            LogMessage(Text, i, j, Time);
-        }
-    }
-    puyoNum = tmp;
-    if (nowBest[0] > 2000)
-    {
-        WCHAR text[] = L"????? : %d";
-        DrawString(hMemDC, 0, 340, text, nowBest[0]);
-        dropQueue.clear();
-        GetStarted(copyField, copyFloor, nextPuyo[0], nextPuyo[1], nowBest[1]);
-    }
-    else
-    {
-        int place = value[best[1]][0][1] >> 5;
-        for (int i = 0; i < best[1] - 1; i++)
-        {
-            place = value[best[1] - i][place][1] >> 5;
-        }
-        WCHAR text[] = L"Score : %d";
-        DrawString(hMemDC, 0, 340, text, best[0]);
-        queue.clear();
-        dropQueue.clear();
-        dropQueue.push_back(value[0][place][1] & 0b11111);
-        //drop(value[0][place][1]);
-        GetStarted(copyField, copyFloor, nextPuyo[0], nextPuyo[1], value[0][place][1] & 0b11111);
-        auto end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> elapsed = end - start;
-        Time = elapsed.count();
-
-
-        WCHAR Text[] = L"Search.Time:%lf";
-        LogMessage(Text, Time);
-    }
-}*/
 
 struct Result {
     int k = -1;
@@ -1781,7 +1609,6 @@ void Search() {
         }
     }
 
-    puyoNum = tmp;
     int place = value[best[1]][0][1] >> 5;
     std::vector<int> log = { place };
     memcpy(copyField, Field, sizeof(__int64) * 6);
@@ -1805,8 +1632,8 @@ void Search() {
         std::get<0>(stroke.child) = Puyos.first.first;
         std::get<1>(stroke.shaft) = Puyos.second.second;
         std::get<1>(stroke.child) = Puyos.first.second;
-        std::get<2>(stroke.shaft) = color[i][1];
-        std::get<2>(stroke.child) = color[i][0];
+        std::get<2>(stroke.shaft) = color[i][0];
+        std::get<2>(stroke.child) = color[i][1];
 
         sub.push_back(stroke);
     }
@@ -1830,6 +1657,7 @@ void Search() {
     WCHAR Text[] = L"Search.Time:%lf";
     
     LogMessage(Text, Time);
+    puyoNum = tmp;
 }
 
 static bool Check(int n, int direction)
@@ -1933,10 +1761,8 @@ static void OvserveEnemy() {
 
 static void BattleUpdate()
 {
-    //newDrawString((WCHAR*)L"%d", frameCount);
-    //MakeTemplate();
-
-
+    OvserveEnemy();
+    //Auto関数のコメントアウトを外すことで、自動操作になります。
     //Auto();
     DrawString(hMemDC, 0, 20, (WCHAR*)L"Puyo = %d", puyoNum);
     DrawString(hMemDC, 0, 36, (WCHAR*)L"EPuyo = %d", EPuyo);
@@ -1947,20 +1773,17 @@ static void BattleUpdate()
         DrawString(hMemDC, 0, 180, (WCHAR*)L"Time:%f", Time);
         DrawString(hMemDC, 0, 200, (WCHAR*)L"floor = %d", fieldFloor[0]);
     }*/
-    /*{
+    {
         for (int i = 0; i < 6; i++)
         {
             for (int j = 0; j < 12; j++)
             {
                 WCHAR text[] = L"%d";
-                DrawString(hMemDC, 105 + i * 21, 288 - j * 20, text, (copyField[i] >> j * 3) & 0b111);
+                DrawString(hMemDC, 104 + i * 21, 288 - j * 20, text, (copyField[i] >> j * 3) & 0b111);
             }
         }
-    }*/
+    }
     
-    //DrawString(hMemDC, 105, 288, (WCHAR*)L"%d", JudgementColor(147, 268));
-    //DrawRGBAt(105, 268);
-    OvserveEnemy();
 
     {
         static int reliability = 0;
@@ -1972,17 +1795,14 @@ static void BattleUpdate()
             if (!dropQueue.empty() && !assist)
             {
                 int n = dropQueue[0];
+                //ぷよが操作可能になる前に操作を入力しておく。
                 if (Check(n, 0))
                 {
                     PPT.InputKey(VK_LEFT, true, true);
-                    WCHAR text[] = L"LEFT!";
-                    DrawString(hMemDC, 0, 20, text);
                 }
                 else if (Check(n, 1))
                 {
                     PPT.InputKey(VK_RIGHT, true, true);
-                    WCHAR text[] = L"RIGHT!";
-                    DrawString(hMemDC, 0, 20, text);
                 }
 
             }
@@ -1992,9 +1812,8 @@ static void BattleUpdate()
             reliability++;
             if (reliability >= 2 && old && saveNext[0] == nextNextPuyo[0] && saveNext[1] == nextNextPuyo[1])
             {
+                //色が変わったとみなして処理
                 ImportField();
-                WCHAR text[] = L"Color Changed!";
-                DrawString(hMemDC, 0, 0, text);
                 nowPuyo[0] = nextPuyo[0];
                 nowPuyo[1] = nextPuyo[1];
                 nextPuyo[0] = nextNextPuyo[0];
@@ -2003,8 +1822,7 @@ static void BattleUpdate()
                 nextNextPuyo[1] = JudgementColor(260, 125);
                 RaiseFlag(nextNextPuyo[0]);
                 RaiseFlag(nextNextPuyo[1]);
-                if (scene == 0 || assist) CheckArrays();
-                //if (scene != 1) CheckArrays();
+                if (scene == 0 || assist) CopyArrays();
                 if (!dropQueue.empty() && !assist)
                 {
                     drop(dropQueue[0]);
@@ -2012,7 +1830,6 @@ static void BattleUpdate()
                 }
                 if (scene == 1) MakeTemplate();
                 if (scene == 2) Search();
-                //if (scene == 2) Potential();
                 old = false;
             }
         }
@@ -2030,16 +1847,14 @@ static void BattleUpdate()
         DrawString(hMemDC, 263, 125, (WCHAR*)L"%d", JudgementColor(260, 125));
         //DrawRGBAt(260, 125);
     }
+    //Aキーを押すとこの関数で初期化されます
     Init();
 
-    // You can move the cursor with the cross key.
     // 十字キーでカーソルを動かせます。
     //MoveCursor();
     //DrawRGBAt(cursorX, cursorY);
     //DrawString(hMemDC, cursorX, cursorY, (WCHAR*)L"(%d, %d) : %d", cursorX, cursorY, JudgementColor(cursorX, cursorY));
     //JudgementColor(cursorX, cursorY);
-    //DrawRGBAt(215, 300);
-    //gamestart d7,77,20 x-310,y-185
 
     Operations();
 
@@ -2049,8 +1864,6 @@ static void ChangeScenes()
 {
     static bool Key = false, KeyOld = false;
 
-    // This if statement passes only the first frame when you press the S key.
-    //このif文はTキーを押した最初の1フレームだけ通ります。
     KeyOld = Key;
     Key = GetAsyncKeyState('S') != 0;
     if (Key && !KeyOld)
@@ -2078,13 +1891,8 @@ void ActivityCreate()
     PPT.SetWindowForeground();
     PPT.SetWindowPosition(0, 0);
 
-    // If you want to enforce the size of the client area.
     // クライアント領域のサイズを強制したいとき。
     PPT.SetClientSize(CLIENT_WIDTH, CLIENT_HEIGHT);
-
-    // Narrow the capture area from top, bottom, left and right.
-    // キャプチャ領域を上下左右から狭めます。
-    //PPT.TrimCaptureBound(50, 50, 50, 50);
 
     PPT.SetCapturePosition();
     PPT.SetCaptureSize();
@@ -2105,6 +1913,5 @@ void onButtonCommand(HWND hWnd, WORD code)
 
 void ActivityDestroy()
 {
-    // If you have anything to do when your application ends, you can add it here.
-    // アプリケーションの終了時に何か処理することがあれば、ここに追加すると良いでしょう。
+
 }

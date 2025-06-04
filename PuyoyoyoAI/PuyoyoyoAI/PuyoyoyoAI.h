@@ -8,6 +8,10 @@
 #define CLIENT_WIDTH 640
 #define CLIENT_HEIGHT 360
 
+
+#define ASSIST_WIDTH 480
+#define ASSIST_HEIGHT 600
+
 struct Data {
     std::tuple<int, int, int> shaft; // x, y, color
     std::tuple<int, int, int> child;

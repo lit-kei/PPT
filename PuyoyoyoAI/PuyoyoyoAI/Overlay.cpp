@@ -79,15 +79,33 @@ void OverlayPaint() {
     {
         Data element = strokes[i];
         if (get<0>(element.shaft) == -1 || get<0>(element.child) == -1) continue;
-        HPEN pen = CreatePen(PS_SOLID, 1, getColor(get<2>(element.shaft)));
-        SelectObject(memDC, pen);
-        SelectObject(memDC, CreateSolidBrush(WHITE));
-        Rectangle(memDC, 20 + get<0>(element.shaft) * 21, 40 + 240 - get<1>(element.shaft) * 20, get<0>(element.shaft) * 21 + 21 + 20, 60 + 240 - get<1>(element.shaft) * 20);
-        pen = CreatePen(PS_SOLID, 1, getColor(get<2>(element.child)));
-        SelectObject(memDC, pen);
-        Rectangle(memDC, 20 + get<0>(element.child) * 21, 40 + 240 - get<1>(element.child) * 20, get<0>(element.child) * 21 + 21 + 20, 60 + 240 - get<1>(element.child) * 20);
-        DeleteObject(pen);
+
+        // shaft用ペン
+        HPEN penShaft = CreatePen(PS_SOLID, 1, getColor(get<2>(element.shaft)));
+        HPEN oldPen = (HPEN)SelectObject(memDC, penShaft);
+        HBRUSH oldBrush = (HBRUSH)SelectObject(memDC, CreateSolidBrush(WHITE));
+        Rectangle(memDC,
+            20 + get<0>(element.shaft) * 21,
+            40 + 240 - get<1>(element.shaft) * 20,
+            get<0>(element.shaft) * 21 + 21 + 20,
+            60 + 240 - get<1>(element.shaft) * 20);
+        SelectObject(memDC, oldPen);
+        DeleteObject(penShaft);
+
+        // child用ペン
+        HPEN penChild = CreatePen(PS_SOLID, 1, getColor(get<2>(element.child)));
+        oldPen = (HPEN)SelectObject(memDC, penChild);
+        Rectangle(memDC,
+            20 + get<0>(element.child) * 21,
+            40 + 240 - get<1>(element.child) * 20,
+            get<0>(element.child) * 21 + 21 + 20,
+            60 + 240 - get<1>(element.child) * 20);
+        SelectObject(memDC, oldPen);
+        DeleteObject(penChild);
+
+        SelectObject(memDC, oldBrush); // ブラシも戻す
     }
+
     vector<Data> alpha;
     copy_if(sub.begin(), sub.end(), back_inserter(alpha), [](const Data& d) { return d.display == 1; });
     HDC alphaDC = CreateCompatibleDC(hdc);

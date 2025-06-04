@@ -14,6 +14,7 @@
 
 #define MAX_LOADSTRING 100
 
+
 // グローバル変数:
 HINSTANCE hInst;                                // 現在のインターフェイス
 WCHAR szTitle[MAX_LOADSTRING];                  // タイトル バーのテキスト
@@ -21,9 +22,8 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // メイン ウィンドウ ク
 
 
 WCHAR buf[256];
-int color = 0;
-int place = -1;
-int put[2][3] = { {0,0,-1}, {0,0,-1} };
+int index = -1;
+int put[2][3] = { {-1,0,0}, {-1,0,0} };
 bool assist = true;
 std::vector<Data> sub;
 
@@ -55,10 +55,10 @@ LRESULT CALLBACK NewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
     case WM_GETMINMAXINFO:
     {
         MINMAXINFO* pMinMax = (MINMAXINFO*)lParam;
-        pMinMax->ptMinTrackSize.x = 315; // 最小幅
-        pMinMax->ptMinTrackSize.y = 360; // 最小高さ
-        pMinMax->ptMaxTrackSize.x = 315; // 最大幅
-        pMinMax->ptMaxTrackSize.y = 360; // 最大高さ
+        pMinMax->ptMinTrackSize.x = ASSIST_WIDTH; // 最小幅
+        pMinMax->ptMinTrackSize.y = ASSIST_HEIGHT; // 最小高さ
+        pMinMax->ptMaxTrackSize.x = ASSIST_WIDTH; // 最大幅
+        pMinMax->ptMaxTrackSize.y = ASSIST_HEIGHT; // 最大高さ
     }
     return 0;
     default:
@@ -158,7 +158,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         L"NewWindowClass",
         L"Assist",
         WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT, 315, 360,
+        CW_USEDEFAULT, CW_USEDEFAULT, ASSIST_WIDTH, ASSIST_HEIGHT,
         NULL, NULL, GetModuleHandle(NULL), NULL);
     //ShowWindow(hNewWnd, SW_SHOW);
 
