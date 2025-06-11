@@ -51,8 +51,7 @@
               "ViewState": "AQIAAKQAAAAAAAAAAAAewLkAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2024-07-25T13:07:00.706Z",
-              "IsPinned": true,
-              "EditorCaption": ""
+              "IsPinned": true
             },
             {
               "$type": "Bookmark",
@@ -68,8 +67,7 @@
               "RelativeToolTip": "PuyoyoyoAI\\Assist.cpp",
               "ViewState": "AQIAACgAAAAAAAAAAADwv3UAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-06-04T11:43:58.014Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-06-04T11:43:58.014Z"
             },
             {
               "$type": "Document",
@@ -81,8 +79,7 @@
               "RelativeToolTip": "PuyoyoyoAI\\Activity.h",
               "ViewState": "AQIAAAAAAAAAAAAAAADwvwgAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-04-29T07:09:18.516Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-29T07:09:18.516Z"
             },
             {
               "$type": "Document",
@@ -94,8 +91,7 @@
               "RelativeToolTip": "PuyoyoyoAI\\PuyoyoyoAI.h",
               "ViewState": "AQIAAAAAAAAAAAAAAAAAAAsAAAAXAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-04-28T07:15:13.808Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-28T07:15:13.808Z"
             },
             {
               "$type": "Document",
@@ -107,8 +103,7 @@
               "RelativeToolTip": "PuyoyoyoAI\\Overlay.cpp",
               "ViewState": "AQIAAA8AAAAAAAAAAAAAADUAAAAdAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-04-16T09:53:28.885Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-16T09:53:28.885Z"
             },
             {
               "$type": "Document",
@@ -120,8 +115,7 @@
               "RelativeToolTip": "PuyoyoyoAI\\template.h",
               "ViewState": "AQIAAAAAAAAAAAAAAAAAAAQAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2024-11-15T09:21:58.967Z",
-              "EditorCaption": ""
+              "WhenOpened": "2024-11-15T09:21:58.967Z"
             },
             {
               "$type": "Document",
@@ -131,7 +125,7 @@
               "RelativeDocumentMoniker": "PuyoyoyoAI\\Activity.cpp",
               "ToolTip": "C:\\Users\\hiran\\OneDrive\\Desktop\\Keisuke\\programming\\visualStudio\\PPTAI\\PuyoyoyoAI\\PuyoyoyoAI\\Activity.cpp",
               "RelativeToolTip": "PuyoyoyoAI\\Activity.cpp",
-              "ViewState": "AQIAAC8FAAAAAAAAAADgvwAFAABJAAAA",
+              "ViewState": "AQIAAMYEAAAAAAAAAAAiwAAFAABJAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2024-10-18T11:15:38.838Z",
               "EditorCaption": ""
