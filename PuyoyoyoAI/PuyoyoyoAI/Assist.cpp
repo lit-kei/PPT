@@ -11,11 +11,10 @@
 
 const COLORREF colors[] = {
     RGB(0,0,0),
-    RGB(255,0,0),
-    RGB(255,255,0),
-    RGB(0,255,0),
-    RGB(0,0,255),
-    RGB(255,0,255),
+    RGB(128,0,0),
+    RGB(40,200,128),
+    RGB(255,105,180),
+    RGB(128,0,200),
     RGB(0,255,255),
     RGB(255,0,165),
     RGB(255,165,0),
@@ -25,7 +24,8 @@ const COLORREF colors[] = {
     RGB(0,165,255),
     RGB(0,191,255),
     RGB(64,224,208),
-    RGB(75,0,130)
+    RGB(75,0,130),
+    RGB(200,0,40)
 };
 
 
@@ -93,8 +93,7 @@ void AssistPaint() {
     ExtTextOut(memDC, 0, 0, ETO_OPAQUE, &rect, NULL, 0, NULL);
     SetTextColor(memDC, RGB(0, 0, 0));
 
-    TextOut(memDC, 10, 10, index == -1 ? (WCHAR*)L"現在の状況で使えるテンプレートは存在しません。" : buf,
-        index != -1 ? wcslen(buf) : 23);
+    TextOut(memDC, 10, 10, buf, wcslen(buf));
 
     // メモリDCから実際のDCへ転送
     BitBlt(hdc, ps.rcPaint.left, ps.rcPaint.top,

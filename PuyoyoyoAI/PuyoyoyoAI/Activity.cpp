@@ -64,6 +64,8 @@ const __int8 colorBonus[5] = { 0,3,6,12,24 };
 const __int8 linkBonus[8] = { 0,2,3,4,5,6,7,10 };
 const __int8 idealHeight[6] = { 1, 0, 0, 0, 0, 1 };
 
+const int threshold = 40;//発火の基準となるぷよの個数
+
 static unsigned int frameCount = 0;
 
 
@@ -271,34 +273,32 @@ static void PressZKeyRepeatedly()
     }
 }*/
 
-static void fall(unsigned __int64* pointer)
+static void fall(unsigned __int64* pointer, int* floor)
 {
-    for (int i = 0; i < 6; i++)
-    {
-        unsigned __int64 row = *(pointer + i);
-        unsigned __int64 tmp = 0;
-        int num = 0;
-        for (int j = 0; j < 13; j++)
-        {
-            if (*(pointer + i) >> (num * 3) == 0) break;
-            tmp = 0;
-            int color = (*(pointer + i) >> (j * 3)) & 0b111;
-            if (!color)
-            {
-                tmp = row & (((unsigned __int64)0b1 << (num * 3 + 1)) - 1);
-                row &= ~(((unsigned __int64)0b1 << (num * 3 + 1)) - 1);
-                row >>= 3;
-                row |= tmp;
-                num--;
+    for (int col = 0; col < 6; col++) {
+        std::vector<unsigned int> column;
+        // 上から下にぷよを読み込む（空白をスキップ）
+        for (int row = 0; row < 13; row++) {
+            int color = (pointer[col] >> (row * 3)) & 0b111;
+            if (color != 0) {
+                column.push_back(color);
             }
-            num++;
         }
-        *(pointer + i) = row;
+
+        // カラムの再構築（ぷよを下に詰める）
+        pointer[col] = 0;
+        for (int row = 0; row < column.size(); row++) {
+            pointer[col] |= (unsigned __int64)(column[row] & 0b111) << (row * 3);
+        }
+
+        floor[col] = static_cast<int>(column.size());
     }
 }
 
+
 static int ChainStart(unsigned __int64* pointer, int chain, std::deque<int>& dis, __int64* erase, char* eraseCount)
 {
+    dis.clear();
     if (!detectChain(pointer, dis, erase, eraseCount)) return 0;
     for (int i = 0; i < 6; i++)
     {
@@ -339,90 +339,96 @@ static int ChainStart(unsigned __int64* pointer, int chain, std::deque<int>& dis
     return puyo * bonus;
 }
 
-static std::pair<std::pair<int, int>, std::pair<int, int>> GetStarted(unsigned __int64* fieldPointer, int* floorPointer, __int8 childPuyo, __int8 shaftPuyo, int place)
+static std::pair<std::pair<int, int>, std::pair<int, int>> GetStarted(
+    unsigned __int64* fieldPointer, int* floorPointer,
+    __int8 childPuyo, __int8 shaftPuyo, int place)
 {
-    static std::pair<int, int> shaft = std::make_pair(0, 0);
-    static std::pair<int, int> child = std::make_pair(0, 0);
-    if (place < 12)
-    {
-        if (*(floorPointer + place) >= 12) return std::make_pair(std::make_pair(-1, -1), std::make_pair(-1, -1));
-        if (place < 6)
-        {
-            *(fieldPointer + place) |= (unsigned __int64)shaftPuyo << *(floorPointer + place) * 3;
-            *(floorPointer + place) += 1;
-            //puyoNum++;
-            if (*(floorPointer + place) >= 12) return std::make_pair(std::make_pair(-1, -1), std::make_pair(-1, -1));
-            *(fieldPointer + place) |= (unsigned __int64)childPuyo << (*(floorPointer + place)) * 3;
-            *(floorPointer + place) += 1;
-            //puyoNum++;
+    std::pair<int, int> shaft = std::make_pair(-1, -1);
+    std::pair<int, int> child = std::make_pair(-1, -1);
 
-            child.first = place;
-            shaft.second = *(floorPointer + place) - 2;
-            child.first = place;
-            shaft.second = *(floorPointer + place) - 1;
+    // 入力が不正な場合は即座に無効なペアを返す
+    if (place < 0 || place >= 24) {
+        return std::make_pair(child, shaft);
+    }
+
+    // --- 縦置き（同じ列） ---
+    if (place < 12) {
+        int col = (place < 6) ? place : (place - 6);
+
+        if (col < 0 || col >= 6) return std::make_pair(child, shaft);
+
+        // 上限チェック（2つ置く必要がある）
+        if (floorPointer[col] + 1 >= 12) {
+            return std::make_pair(child, shaft);
         }
-        else
-        {
-            place -= 6;
-            *(fieldPointer + place) |= (unsigned __int64)childPuyo << *(floorPointer + place) * 3;
-            *(floorPointer + place) += 1;
-            //puyoNum++;
-            if (*(floorPointer + place) >= 12) return std::make_pair(std::make_pair(-1, -1), std::make_pair(-1, -1));
-            *(fieldPointer + place) |= (unsigned __int64)shaftPuyo << (*(floorPointer + place)) * 3;
-            *(floorPointer + place) += 1;
-            //puyoNum++;
 
-            shaft.first = place;
-            shaft.second = *(floorPointer + place) - 2;
-            child.first = place;
-            child.second = *(floorPointer + place) - 1;
+        if (place < 6) {
+            // shaft → child の順に置く（shaft が下）
+            fieldPointer[col] |= (unsigned __int64)shaftPuyo << (floorPointer[col] * 3);
+            shaft = std::make_pair(col, floorPointer[col]);
+            floorPointer[col]++;
+
+            fieldPointer[col] |= (unsigned __int64)childPuyo << (floorPointer[col] * 3);
+            child = std::make_pair(col, floorPointer[col]);
+            floorPointer[col]++;
+        }
+        else {
+            // child → shaft の順に置く（child が下）
+            fieldPointer[col] |= (unsigned __int64)childPuyo << (floorPointer[col] * 3);
+            child = std::make_pair(col, floorPointer[col]);
+            floorPointer[col]++;
+
+            fieldPointer[col] |= (unsigned __int64)shaftPuyo << (floorPointer[col] * 3);
+            shaft = std::make_pair(col, floorPointer[col]);
+            floorPointer[col]++;
         }
     }
-    else
-    {
+
+    // --- 横置き（左右の列） ---
+    else {
         place -= 12;
-        if (place < 5)
-        {
-            if (*(floorPointer + place) < 12)
-            {
-                *(fieldPointer + place) |= (unsigned __int64)childPuyo << *(floorPointer + place) * 3;
-                *(floorPointer + place) += 1;
-                //puyoNum++;
-                child.first = place;
-                child.second = *(floorPointer + place) - 1;
+
+        if (place < 0 || place >= 11) return std::make_pair(child, shaft);  // place in [0, 10] only
+
+        int left = (place < 5) ? place : (place - 5);
+        int right = left + 1;
+
+        // 範囲チェック（0～5列のみ）
+        if (left < 0 || right >= 6) return std::make_pair(child, shaft);
+
+        if (place < 5) {
+            // child 左, shaft 右
+            if (floorPointer[left] >= 12 || floorPointer[right] >= 12) {
+                return std::make_pair(child, shaft);
             }
-            if (*(floorPointer + place + 1) < 12)
-            {
-                *(fieldPointer + place + 1) |= (unsigned __int64)shaftPuyo << *(floorPointer + place + 1) * 3;
-                *(floorPointer + place + 1) += 1;
-                //puyoNum++;
-                shaft.first = place + 1;
-                shaft.second = *(floorPointer + place) - 1;
-            }
+
+            fieldPointer[left] |= (unsigned __int64)childPuyo << (floorPointer[left] * 3);
+            child = std::make_pair(left, floorPointer[left]);
+            floorPointer[left]++;
+
+            fieldPointer[right] |= (unsigned __int64)shaftPuyo << (floorPointer[right] * 3);
+            shaft = std::make_pair(right, floorPointer[right]);
+            floorPointer[right]++;
         }
-        else
-        {
-            place -= 5;
-            if (*(floorPointer + place) < 12)
-            {
-                *(fieldPointer + place) |= (unsigned __int64)shaftPuyo << *(floorPointer + place) * 3;
-                *(floorPointer + place) += 1;
-                //puyoNum++;
-                shaft.first = place;
-                shaft.second = *(floorPointer + place) - 1;
+        else {
+            // shaft 左, child 右
+            if (floorPointer[left] >= 12 || floorPointer[right] >= 12) {
+                return std::make_pair(child, shaft);
             }
-            if (*(floorPointer + place + 1) < 12)
-            {
-                *(fieldPointer + place + 1) |= (unsigned __int64)childPuyo << *(floorPointer + place + 1) * 3;
-                *(floorPointer + place + 1) += 1;
-                //puyoNum++;
-                child.first = place + 1;
-                child.second = *(floorPointer + place) - 1;
-            }
+
+            fieldPointer[left] |= (unsigned __int64)shaftPuyo << (floorPointer[left] * 3);
+            shaft = std::make_pair(left, floorPointer[left]);
+            floorPointer[left]++;
+
+            fieldPointer[right] |= (unsigned __int64)childPuyo << (floorPointer[right] * 3);
+            child = std::make_pair(right, floorPointer[right]);
+            floorPointer[right]++;
         }
     }
-    return std::make_pair(child, shaft);
+
+    return std::make_pair(child, shaft); // 子ぷよ、親ぷよの順で返す
 }
+
 static void drop(int place)
 {
     queue.clear();
@@ -1411,7 +1417,7 @@ static int Simulation(unsigned __int64* fieldPointer, int* floorPointer, std::de
                 save = ChainStart(copyFi, count, dis, erase, eraseCount);
                 if (save == 0) break;
                 score += save;
-                fall(copyFi);
+                fall(copyFi, copyFl);
                 count++;
             }
 
@@ -1430,6 +1436,58 @@ static int Simulation(unsigned __int64* fieldPointer, int* floorPointer, std::de
         }
     }
     return bestScore;
+}
+
+static bool Fire() {
+    sub.clear();
+    int best[3] = { 0, 0, 0 };//iの値、連鎖数、得点
+    int count = 1;
+    int score = 0;
+    __int64 erase[6] = { 0 };
+    __int8 eraseCount[5] = { 0 };
+    std::deque<int> dis;
+    SetTmp(); // この関数ではtmp系を使います
+    for (int i = 0; i < 22; i++)
+    {
+        score = 0;
+        count = 1;
+        GetStarted(tmpField, tmpFloor, nextPuyo[0], nextPuyo[1], i);
+        while (true)
+        {
+            int save = ChainStart(tmpField, count, dis, erase, eraseCount);
+            if (save == 0) break;
+            score += save;
+            fall(tmpField, tmpFloor);
+            count++;
+        }
+        if (count - 1 > best[1])//連鎖数優先
+            //if (score > best[2])//得点優先
+        {
+            best[0] = i;
+            best[1] = count - 1;
+            best[2] = score;
+        }
+        SetTmp();
+    }
+    if (best[1] > 0)
+    {
+        std::pair<std::pair<int, int>, std::pair<int, int>> puyos = GetStarted(tmpField, tmpFloor, 1, 1, best[2]);
+        put[0][0] = puyos.first.first;
+        put[0][1] = puyos.first.second;
+        put[1][0] = puyos.second.first;
+        put[1][1] = puyos.second.second;
+
+        put[0][2] = nextPuyo[0];
+        put[1][2] = nextPuyo[1];
+
+        newDrawString((WCHAR*)L"%d連鎖,%d点", best[1], best[2]);
+        SetTmp();
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 struct Result {
@@ -1451,10 +1509,9 @@ static Result ProcessK( const int k, const unsigned __int8 Puyo[2], const unsign
     int score = 0;
     int color = -1;
     std::pair<int, int> place = std::make_pair(-1, -1);
-    int count = -1;
+    int count = 1;
     unsigned __int64 copyFi[6] = { 0 };
     int copyFl[6] = { 0 };
-    std::deque<int> copyDis;
     __int64 erase[6] = { 0 };
     __int8 eraseCount[5] = { 0 };
     for (int i = 0; i < 6; i++) {
@@ -1462,13 +1519,26 @@ static Result ProcessK( const int k, const unsigned __int8 Puyo[2], const unsign
         copyFl[i] = *(floorPointer + i);
     }
     GetStarted(copyFi, copyFl, Puyo[0], Puyo[1], k);
+    score = FieldEvaluation(floorPointer);
     if (!detectChain(copyFi, dis, erase, eraseCount)) {
-        score = Simulation(copyFi, copyFl, dis, erase, eraseCount, &color, place, &count) + FieldEvaluation(floorPointer);
+        score += Simulation(copyFi, copyFl, dis, erase, eraseCount, &color, place, &count);
     }
+    /*else if (puyoNum > threshold) {
+        while (true)
+        {
+            int save = ChainStart(copyFi, count, dis, erase, eraseCount);
+            if (save == 0) break;
+            score += save;
+            fall(copyFi);
+            count++;
+        }
+    }*/
     result.init(k, score, color, place, count);
     return result;
 }
 void Search() {
+    index = -1;
+    if (puyoNum > threshold && Fire()) return;
     sub.clear();
     auto start = std::chrono::high_resolution_clock::now();
     int SEARCH_DEPTH = (6 * 13 - puyoNum) / 2 + 4;
@@ -1646,8 +1716,8 @@ void Search() {
     }
     else
     {
-        sub.push_back({ std::make_tuple(BestResult.place.first, BestResult.place.second, BestResult.color), std::make_tuple(BestResult.place.first, BestResult.place.second + 1, BestResult.color), 1 });
-        GetStarted(copyField, copyFloor, nowPuyo[0], nowPuyo[1], value[0][place][1] & 0b11111);
+        //sub.push_back({ std::make_tuple(BestResult.place.first, BestResult.place.second, BestResult.color), std::make_tuple(BestResult.place.first, BestResult.place.second + 1, BestResult.color), 1 });
+        //GetStarted(copyField, copyFloor, nowPuyo[0], nowPuyo[1], value[0][place][1] & 0b11111);
         IntToWCHAR(value[0][place][1], nowPuyo[0], nowPuyo[1], value[0][place][0]);
     }
 
@@ -1773,7 +1843,7 @@ static void BattleUpdate()
         DrawString(hMemDC, 0, 180, (WCHAR*)L"Time:%f", Time);
         DrawString(hMemDC, 0, 200, (WCHAR*)L"floor = %d", fieldFloor[0]);
     }*/
-    {
+    /* {
         for (int i = 0; i < 6; i++)
         {
             for (int j = 0; j < 12; j++)
@@ -1782,7 +1852,7 @@ static void BattleUpdate()
                 DrawString(hMemDC, 104 + i * 21, 288 - j * 20, text, (copyField[i] >> j * 3) & 0b111);
             }
         }
-    }
+    }*/
     
 
     {
