@@ -76,6 +76,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
         HBITMAP hBitmap = CreateCompatibleBitmap(hdc, OVERLAY_WIDTH, OVERLAY_HEIGHT);
         overlayPrev = (HBITMAP)SelectObject(overlayDC, hBitmap);
         ReleaseDC(hWnd, hdc);
+        break;
     }
     case WM_PAINT:
     {
@@ -107,6 +108,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
         pMinMax->ptMinTrackSize.y = OVERLAY_HEIGHT; // 最小高さ
         pMinMax->ptMaxTrackSize.x = OVERLAY_WIDTH; // 最大幅
         pMinMax->ptMaxTrackSize.y = OVERLAY_HEIGHT; // 最大高さ
+        break;
     }
     case WM_DESTROY:
     {
@@ -114,6 +116,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
         HBITMAP hBitmap = (HBITMAP)SelectObject(overlayDC, overlayPrev);
         DeleteObject(hBitmap);
         DeleteDC(overlayDC);
+        break;
     }
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);

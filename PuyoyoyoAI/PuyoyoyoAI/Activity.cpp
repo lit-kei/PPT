@@ -1,3 +1,6 @@
+
+#define NOMINMAX
+
 #include "framework.h"
 #include "Activity.h"
 #include "PPTAIHelper.h"
@@ -14,6 +17,7 @@
 #include "string"
 #include "future"
 #include "utility"
+#include "tuple"
 
 #define BEAM_WIDTH 15
 #define BEAM_DEPTH 3
@@ -64,7 +68,7 @@ const __int8 colorBonus[5] = { 0,3,6,12,24 };
 const __int8 linkBonus[8] = { 0,2,3,4,5,6,7,10 };
 const __int8 idealHeight[6] = { 1, 0, 0, 0, 0, 1 };
 
-const int threshold = 40;//発火の基準となるぷよの個数
+const int threshold = 28;//発火の基準となるぷよの個数
 
 static unsigned int frameCount = 0;
 
@@ -83,7 +87,7 @@ std::deque<int> dropQueue;
 static void ImportField();
 static void MakeTemplate();
 static void Search();
-
+static bool Fire();
 std::string WCHARArrayToString(const WCHAR* wideCharArray) {
     // 変換するためのサイズを取得する
     int sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wideCharArray, -1, nullptr, 0, nullptr, nullptr);
@@ -177,7 +181,6 @@ static bool detectChain(unsigned __int64* fieldPointer, std::deque<int>& dis, __
         if (i != 5) *(eraseCount + i) = 0;
     }
     UnionFind uf(ROWS * COLS);
-    std::vector<std::vector<bool>> visited(ROWS, std::vector<bool>(COLS, false));
     bool chainDetected = false;
 
     for (int r = 0; r < ROWS; ++r) {
@@ -226,8 +229,8 @@ static bool detectChain(unsigned __int64* fieldPointer, std::deque<int>& dis, __
                 if (uf.find(toIndex(nr, nc)) == root)
                 {
                     int color = copyFi[nc] >> (nr * 3) & 0b111;
-                    *(erase + nc) |= (long long)0b111 << (nr * 3);
                     if (color == 0 || color >= 6) break;
+                    *(erase + nc) |= (long long)0b111 << (nr * 3);
                     ++*(eraseCount + color - 1);
 
                 }
@@ -287,7 +290,7 @@ static void fall(unsigned __int64* pointer, int* floor)
 
         // カラムの再構築（ぷよを下に詰める）
         pointer[col] = 0;
-        for (int row = 0; row < column.size(); row++) {
+        for (unsigned int row = 0; row < column.size(); row++) {
             pointer[col] |= (unsigned __int64)(column[row] & 0b111) << (row * 3);
         }
 
@@ -575,13 +578,46 @@ static void drop(int place)
         }
     }
 }
+static std::tuple<double, double, double> rgbToHsv(int r, int g, int b) {
+    double rf = r / 255.0;
+    double gf = g / 255.0;
+    double bf = b / 255.0;
 
+    double maxVal = std::max({ rf, gf, bf });
+    double minVal = std::min({ rf, gf, bf });
+    double delta = maxVal - minVal;
+
+    double h = 0.0, s = 0.0, v = maxVal;
+
+    if (delta == 0.0) {
+        h = 0.0;
+    }
+    else {
+        if (maxVal == rf)
+            h = 60 * fmod((gf - bf) / delta, 6);
+        else if (maxVal == gf)
+            h = 60 * ((bf - rf) / delta + 2);
+        else if (maxVal == bf)
+            h = 60 * ((rf - gf) / delta + 4);
+
+        if (h < 0)
+            h += 360;
+    }
+
+    if (maxVal != 0.0)
+        s = delta / maxVal;
+
+    return { h, s, v };
+}
 static void DrawRGBAt(int x, int y)
 {
     BYTE r, g, b;
     PPT.GetPixelColor(x, y, r, g, b);
-    WCHAR text[] = L"(%d, %d) : R=%02x G=%02x B=%02x";
-    DrawString(hMemDC, x, y, text, x, y, r, g, b);
+    auto [h, s, v] = rgbToHsv(r, g, b);
+    int si = static_cast<int>(s * 100);
+    int vi = static_cast<int>(v * 100);
+    WCHAR text[] = L"(%d, %d) : H = %.1f° S = %d%% V = %d%%";
+    DrawString(hMemDC, x, y, text, x, y, h, si, vi);
 }
 
 static void Operations()
@@ -668,74 +704,17 @@ static int JudgementColor(int x, int y) {
 
     BYTE r, g, b;
     PPT.GetPixelColor(x, y, r, g, b);
-    static int color = 0;
-    static int difference = 0;
 
-    if (r >= g)
-    {
-        if (b >= r)
-        {
-            difference = b - g;
-        }
-        else if (g >= b)
-        {
-            difference = r - b;
-        }
-        else
-        {
-            difference = r - g;
-        }
-    }
-    else
-    {
-        if (b >= g)
-        {
-            difference = b - r;
-        }
-        else if (r >= b)
-        {
-            difference = g - b;
-        }
-        else
-        {
-            difference = g - r;
-        }
-    }
-
-    if (difference <= 0x19 && r >= 0x70)
-    {
-        color = 6;
-        return color;
-    }
-
-    if (r >= 0x90)
-    {
-        if (b >= 0x90)
-        {
-            color = 5;
-        }
-        else if (b <= 0x3f)
-        {
-            color = 2;
-        }
-        else
-        {
-            color = 1;
-        }
-    }
-    else if (b >= 0x90)
-    {
-        color = 4;
-    }
-    else if (g >= 0x90)
-    {
-        color = 3;
-    }
-    else
-    {
-        color = 0;
-    }
-    return color;
+    auto [h, s, v] = rgbToHsv(r, g, b);
+    if (v < 0.5) return 0; //vが50%以下だと何もない
+    if (s < 0.3 && h < 220) return 6; //sが30％以下だとお邪魔ぷよ
+    if (h < 20) return 1;
+    else if (h < 70) return 2;
+    else if (h < 160) return 3;
+    else if (h < 240) return 4;
+    else if (h < 330) return 5;
+    else return 1;
+    return 1;
 }
 
 static void MoveCursor()
@@ -872,13 +851,14 @@ static void Init()
             conv[i] = 0;
         }
         static int data[2][3] = { {-1, 0, 0}, {-1, 0, 0} };
-        
+        scene = 1;
+        sub.clear();
         std::copy(&data[0][0], &data[0][0] + 2 * 3, &put[0][0]);
         InvalidateRect(overlayWnd, nullptr, false);
         ImportField();
         ImportEnemy();
-        nextNextPuyo[0] = JudgementColor(263, 106);
-        nextNextPuyo[1] = JudgementColor(260, 125);
+        nextNextPuyo[0] = JudgementColor(263, 108);
+        nextNextPuyo[1] = JudgementColor(263, 122);
         ENextNext[0] = JudgementColor(371, 106);
         ENextNext[1] = JudgementColor(371, 125);
         for (int i = 0; i < 2; i++)
@@ -1078,8 +1058,8 @@ static void IntToWCHAR(int num, __int8 col1, __int8 col2,int value) {
     if (num <= 11) {
         wcscpy_s(base, _ARRAYSIZE(base), L"%d列目に%ls(上),%ls(下)");
         Column = num % 6 + 1;
-        newDrawString(base, Column, getColor(num <= 5 ? col1 : col2), getColor(num <= 5 ? col2 : col1));
-        //newDrawString((WCHAR*)L"Score: %d", value);
+        //newDrawString(base, Column, getColor(num <= 5 ? col1 : col2), getColor(num <= 5 ? col2 : col1));
+        newDrawString((WCHAR*)L"Score: %d", value);
         put[0][2] = col1;
         put[1][2] = col2;
         if (num <= 5)
@@ -1102,8 +1082,8 @@ static void IntToWCHAR(int num, __int8 col1, __int8 col2,int value) {
         bool hoge = num <= 16;
         wcscpy_s(base, _ARRAYSIZE(base), L"%d, %d列目に%ls(左),%ls(右)");
         Column = (num - 12) % 5 + 1;
-        newDrawString(base, Column, Column + 1, getColor(hoge ? col1 : col2), getColor(hoge ? col2 : col1));
-        //newDrawString((WCHAR*)L"Score: %d", value);
+        //newDrawString(base, Column, Column + 1, getColor(hoge ? col1 : col2), getColor(hoge ? col2 : col1));
+        newDrawString((WCHAR*)L"Score: %d", value);
         put[0][0] = Column - 1;
         put[1][0] = Column;
         put[0][1] = fieldFloor[Column - 1];
@@ -1169,23 +1149,40 @@ static bool CanPut(int num, int* floorPointer)
         break;
     }
 }
+static void PutSinglePuyo(unsigned __int64* fieldPointer, int* floorPointer, __int8 color, int col)
+{
+    if (col < 0 || col >= 6 || floorPointer[col] >= 12) return;
+
+    fieldPointer[col] |= (unsigned __int64)color << (floorPointer[col] * 3);
+    floorPointer[col]++;
+}
 struct result {
     std::vector<int> route;
     int value;
 };
 
-static int FieldEvaluation(const int* localFloor)
+static int FieldEvaluation(const int* localFloor, int k)
 {
     int fieldScore = 0;
     for (int i = 0; i < 6; i++)
     {
         int num = idealHeight[i] + puyoNum / 6;
-        fieldScore += (localFloor[i] - num) * (localFloor[i] - num);
+        if ((localFloor[i] - num) * (localFloor[i] - num) <= 4 && k >= 0) {
+            fieldScore += 20;
+        }
+        else if ((localFloor[i] - num) * (localFloor[i] - num) > 4 && k < 0) {
+            fieldScore += 20;
+        }
     }
-    if (fieldScore > 100) fieldScore = 100;
-    return (int)(fieldScore / -20);
+    return fieldScore * k;
 }
 static void MakeTemplate() {
+    if (assist && puyoNum > threshold)
+    {
+        Search();
+        scene = 2;
+        return;
+    }
     sub.clear();
     std::deque<int> dis;
     static __int8 eraseCount[5] = { 0 };
@@ -1291,10 +1288,11 @@ static void MakeTemplate() {
                 if (!detectChain(copyField, dis, erase, eraseCount))
                 {
                     save = 0;
-                    fieldValue = FieldEvaluation(copyFloor) * 10;
+                    fieldValue = FieldEvaluation(copyFloor, -4);
                     for (unsigned __int8 j = 0; j < T_COUNT; j++)
                     {
                         save = TemplateEvaluation(copyField, j) + fieldValue;
+                        //if (score != 0) score +=;
                         if (score < save) {
                             score = save;
                             Template = j;
@@ -1309,7 +1307,7 @@ static void MakeTemplate() {
                         {
                             if (value[t][m][0] < score)
                             {
-                                if (rank == 0) bestTemplate = Template;
+                                bestTemplate = Template;
                                 rank = m;
                                 for (int k = 1; k < BEAM_WIDTH - m; k++)
                                 {
@@ -1338,6 +1336,18 @@ static void MakeTemplate() {
             }
         }
     }
+    if (value[BEAM_DEPTH - 1][BEAM_WIDTH - 1][0] <= 0)
+    {
+        for (int i = 0; i < BEAM_WIDTH; i++) {
+            int score = value[BEAM_DEPTH - 1][i][0];
+            int code = value[BEAM_DEPTH - 1][i][1];
+            LogMessage((WCHAR*)L"value[2][%d] = { score: %d, place: %d, id: %d }", i, score, code & 0b11111, code >> 5);
+        }
+
+        Fire();
+        scene = 2;
+        return;
+    }
 
     std::vector<int> log = { place };
     memcpy(copyField, Field, sizeof(__int64) * 6);
@@ -1355,21 +1365,19 @@ static void MakeTemplate() {
             place = value[BEAM_DEPTH - 1 - i][place][1]>>5;
             log.push_back(place);
         }
+        std::reverse(log.begin(), log.end());
     }
     for (unsigned int i = 0; i < log.size(); i++)
     {
-        const int element = log.back();
-        log.pop_back();
+        const int element = log[i];
         std::pair<std::pair<int, int>, std::pair<int, int>>Puyos = GetStarted(localFi, localFl, color[i][0], color[i][1], value[i][element][1] & 0b11111);
         if (i == 0) continue;
-        Data stroke(std::make_tuple(0, 0, 0), std::make_tuple(0, 0, 0), 0);
-        std::get<0>(stroke.shaft) = Puyos.second.first;
-        std::get<0>(stroke.child) = Puyos.first.first;
-        std::get<1>(stroke.shaft) = Puyos.second.second;
-        std::get<1>(stroke.child) = Puyos.first.second;
-        std::get<2>(stroke.shaft) = color[i][0];
-        std::get<2>(stroke.child) = color[i][1];
-
+        Data stroke(
+            std::vector<std::tuple<int, int, int>>{
+                std::make_tuple(Puyos.second.first, Puyos.second.second, color[i][1]),
+                std::make_tuple(Puyos.first.first, Puyos.first.second, color[i][0])
+            },0
+        );
         sub.push_back(stroke);
     }
     dropQueue.push_back(value[0][place][1]);
@@ -1391,55 +1399,66 @@ static void MakeTemplate() {
 }
 
 
-static int Simulation(unsigned __int64* fieldPointer, int* floorPointer, std::deque<int>& dis, __int64* erase, __int8* eraseCount, int* col, std::pair<int, int>& place, int* chainCount)
+static int Simulation(
+    unsigned __int64* fieldPointer, int* floorPointer,
+    std::deque<int>& dis, __int64* erase, __int8* eraseCount,
+    int* col, int& place, int* chainCount, int& num)
 {
-    int count = 0;
-    int score = 0;
     int bestScore = 0;
-    int save = 0;
-    unsigned __int64 copyFi[6] = { 0 };
-    int copyFl[6] = { 0 };
-    for (int i = 0; i < 6; i++)
-    {
-        copyFi[i] = *(fieldPointer + i);
-        copyFl[i] = *(floorPointer + i);
-    }
+    int bestColor = -1;
+    int bestPlace = -1 ;
+    int bestChainCount = 0;
 
-    for (int i = 0; i < 6; i++)
-    {
-        for (int color = 1; color < 6; color++)
-        {
-            count = 0;
-            score = 0;
-            GetStarted(copyFi, copyFl, color, color, i);
-            while (true)
-            {
-                save = ChainStart(copyFi, count, dis, erase, eraseCount);
-                if (save == 0) break;
-                score += save;
-                fall(copyFi, copyFl);
-                count++;
-            }
+    unsigned __int64 copyFi[6];
+    int copyFl[6];
 
-            if (score > bestScore)
-            {
-                bestScore = score;
-                *col = color;
-                place = std::make_pair(i, *(floorPointer + i));
-                *chainCount = count;
-            }
-            for (int i = 0; i < 6; i++)
-            {
-                copyFi[i] = *(fieldPointer + i);
-                copyFl[i] = *(floorPointer + i);
+    for (int n = 1; n <= 3; n++) { // n個積む（1～3）
+        for (int colIdx = 0; colIdx < 6; colIdx++) {
+            for (int color = 1; color < 6; color++) {
+                // フィールドを初期化
+                for (int i = 0; i < 6; i++) {
+                    copyFi[i] = fieldPointer[i];
+                    copyFl[i] = floorPointer[i];
+                }
+
+                if (copyFl[colIdx] + n - 1 >= 12) continue; // 積みきれなければスキップ
+
+                // n回PutSinglePuyoで積む
+                for (int i = 0; i < n; i++) {
+                    PutSinglePuyo(copyFi, copyFl, color, colIdx);
+                }
+
+                // 連鎖計算
+                int count = 0;
+                int score = 0;
+                while (true) {
+                    int save = ChainStart(copyFi, count, dis, erase, eraseCount);
+                    if (save == 0) break;
+                    score += save;
+                    fall(copyFi, copyFl);
+                    count++;
+                }
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestColor = color;
+                    bestPlace = colIdx;
+                    bestChainCount = count;
+                    num = n;
+                }
             }
         }
     }
+
+    *col = bestColor;
+    place = bestPlace;
+    *chainCount = bestChainCount;
     return bestScore;
 }
 
 static bool Fire() {
     sub.clear();
+    index = -1;
     int best[3] = { 0, 0, 0 };//iの値、連鎖数、得点
     int count = 1;
     int score = 0;
@@ -1451,7 +1470,7 @@ static bool Fire() {
     {
         score = 0;
         count = 1;
-        GetStarted(tmpField, tmpFloor, nextPuyo[0], nextPuyo[1], i);
+        GetStarted(tmpField, tmpFloor, nowPuyo[0], nowPuyo[1], i);
         while (true)
         {
             int save = ChainStart(tmpField, count, dis, erase, eraseCount);
@@ -1469,19 +1488,21 @@ static bool Fire() {
         }
         SetTmp();
     }
-    if (best[1] > 0)
+    if (best[1] > 7 || (puyoNum > 40 && best[1] > 2)) //7連鎖以上であることが発火条件
     {
-        std::pair<std::pair<int, int>, std::pair<int, int>> puyos = GetStarted(tmpField, tmpFloor, 1, 1, best[2]);
+        std::pair<std::pair<int, int>, std::pair<int, int>> puyos = GetStarted(tmpField, tmpFloor, 1, 1, best[0]);
         put[0][0] = puyos.first.first;
         put[0][1] = puyos.first.second;
         put[1][0] = puyos.second.first;
         put[1][1] = puyos.second.second;
 
-        put[0][2] = nextPuyo[0];
-        put[1][2] = nextPuyo[1];
+        put[0][2] = nowPuyo[0];
+        put[1][2] = nowPuyo[1];
 
         newDrawString((WCHAR*)L"%d連鎖,%d点", best[1], best[2]);
-        SetTmp();
+        SetTmp(); 
+        InvalidateRect(overlayWnd, NULL, FALSE);  // 再描画領域を指定
+        UpdateWindow(overlayWnd);                 // 即座に WM_PAINT を発行
         return true;
     }
     else
@@ -1494,22 +1515,25 @@ struct Result {
     int k = -1;
     int score = -1;
     int color = -1;
-    std::pair<int, int> place = std::make_pair(-1, -1);
+    int place = -1;
     int count = -1;
-    void init(int k, int score, int color, std::pair<int, int> place, int count) {
+    int n = 0;
+    void init(int k, int score, int color, int place, int count, int n) {
         this->k = k;
         this->score = score;
         this->color = color;
         this->place = place;
         this->count = count;
+        this->n = n;
     }
 };
 static Result ProcessK( const int k, const unsigned __int8 Puyo[2], const unsigned __int64* fieldPointer, const int* floorPointer, std::deque<int> dis) {
     Result result;
     int score = 0;
     int color = -1;
-    std::pair<int, int> place = std::make_pair(-1, -1);
+    int place = -1;
     int count = 1;
+    int n = 0;
     unsigned __int64 copyFi[6] = { 0 };
     int copyFl[6] = { 0 };
     __int64 erase[6] = { 0 };
@@ -1519,34 +1543,25 @@ static Result ProcessK( const int k, const unsigned __int8 Puyo[2], const unsign
         copyFl[i] = *(floorPointer + i);
     }
     GetStarted(copyFi, copyFl, Puyo[0], Puyo[1], k);
-    score = FieldEvaluation(floorPointer);
+    score = FieldEvaluation(floorPointer, 4);
     if (!detectChain(copyFi, dis, erase, eraseCount)) {
-        score += Simulation(copyFi, copyFl, dis, erase, eraseCount, &color, place, &count);
+        score += Simulation(copyFi, copyFl, dis, erase, eraseCount, &color, place, &count, n);
     }
-    /*else if (puyoNum > threshold) {
-        while (true)
-        {
-            int save = ChainStart(copyFi, count, dis, erase, eraseCount);
-            if (save == 0) break;
-            score += save;
-            fall(copyFi);
-            count++;
-        }
-    }*/
-    result.init(k, score, color, place, count);
+
+    result.init(k, score, color, place, count, n);
     return result;
 }
 void Search() {
     index = -1;
-    if (puyoNum > threshold && Fire()) return;
+    if (assist && puyoNum > threshold && Fire()) return;
     sub.clear();
     auto start = std::chrono::high_resolution_clock::now();
     int SEARCH_DEPTH = (6 * 13 - puyoNum) / 2 + 4;
     if (SEARCH_DEPTH > MAXIMUM_DEPTH) SEARCH_DEPTH = MAXIMUM_DEPTH;
     Result BestResult;
-    short value[MAXIMUM_DEPTH][SEARCH_WIDTH][2] = { 0 }; // [0] - score, [1] & 0b11111 - place, [1] >> 5 - id
-    short best[3] = { 0 };
-    short nowBest[2] = { 0 };
+    int value[MAXIMUM_DEPTH][SEARCH_WIDTH][2] = { { { -10000 } } }; // [0] - score, [1] & 0b11111 - place, [1] >> 5 - id
+    int best[3] = { 0 };
+    int nowBest[2] = { 0 };
     unsigned __int8 Puyo[2] = { 0 };
     unsigned int Seed = frameCount;
     int copyConv[4] = { 0 };
@@ -1644,7 +1659,7 @@ void Search() {
             for (int o = 0; o < 22; o++) {
                 try {
                     auto result = futures[o].get();
-                    int score = result.score;
+                    int score = result.score * result.count;
                     int k = result.k;
 
                     // 結果の処理（scoreの最大値の更新など）
@@ -1691,20 +1706,18 @@ void Search() {
         place = value[best[1] - i][place][1] >> 5;
         log.push_back(place);
     }
-
+    std::reverse(log.begin(), log.end());
     for (unsigned int i = 0; i < log.size(); i++)
     {
-        const int element = log.back();
-        log.pop_back();
-        Data stroke(std::make_tuple(0,0,0), std::make_tuple(0, 0, 0), 0);
+        const int element = log[i];
         std::pair<std::pair<int, int>, std::pair<int, int>>Puyos = GetStarted(localFi, localFl, color[i][0], color[i][1], value[i][element][1] & 0b11111);
-        std::get<0>(stroke.shaft) = Puyos.second.first;
-        std::get<0>(stroke.child) = Puyos.first.first;
-        std::get<1>(stroke.shaft) = Puyos.second.second;
-        std::get<1>(stroke.child) = Puyos.first.second;
-        std::get<2>(stroke.shaft) = color[i][0];
-        std::get<2>(stroke.child) = color[i][1];
-
+        if (i == 0) continue;
+        Data stroke(
+            std::vector<std::tuple<int, int, int>>{
+            std::make_tuple(Puyos.second.first, Puyos.second.second, color[i][1]),
+                std::make_tuple(Puyos.first.first, Puyos.first.second, color[i][0])
+        }, 0
+        );
         sub.push_back(stroke);
     }
     if (!assist)
@@ -1716,9 +1729,15 @@ void Search() {
     }
     else
     {
-        //sub.push_back({ std::make_tuple(BestResult.place.first, BestResult.place.second, BestResult.color), std::make_tuple(BestResult.place.first, BestResult.place.second + 1, BestResult.color), 1 });
-        //GetStarted(copyField, copyFloor, nowPuyo[0], nowPuyo[1], value[0][place][1] & 0b11111);
+        std::vector<std::tuple<int, int, int>> puyos;
+        for (int i = 0; i < BestResult.n; i++)
+        {
+            puyos.push_back(std::make_tuple(BestResult.place, localFl[BestResult.place] + i, BestResult.color));
+        }
+        sub.push_back({ puyos, 1 });
+        GetStarted(copyField, copyFloor, nowPuyo[0], nowPuyo[1], value[0][place][1] & 0b11111);
         IntToWCHAR(value[0][place][1], nowPuyo[0], nowPuyo[1], value[0][place][0]);
+        //newDrawString((WCHAR*)L"スコア：%d", value[0][place][0]);
     }
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -1781,7 +1800,7 @@ static void Draw()
     PPT.DrawCapturedScreen(hMemDC, 0, 0);
 }
 
-static void DetectColor(int color)
+/*static void DetectColor(int color)
 {
     static bool Key = false, KeyOld = false;
     KeyOld = Key;
@@ -1802,6 +1821,7 @@ static void DetectColor(int color)
         newDrawString((WCHAR*)L"Not Found");
     }
 }
+*/
 static void OvserveEnemy() {
     static int saveNext[2] = { 0 };
     static int saveNextNext[2] = { 0 };
@@ -1834,8 +1854,10 @@ static void BattleUpdate()
     OvserveEnemy();
     //Auto関数のコメントアウトを外すことで、自動操作になります。
     //Auto();
-    DrawString(hMemDC, 0, 20, (WCHAR*)L"Puyo = %d", puyoNum);
-    DrawString(hMemDC, 0, 36, (WCHAR*)L"EPuyo = %d", EPuyo);
+    DrawString(hMemDC, 0, 20, (WCHAR*)L"Puyo: %d", puyoNum);
+    DrawString(hMemDC, 0, 36, (WCHAR*)L"EPuyo: %d", EPuyo);
+    DrawString(hMemDC, 0, 52, (WCHAR*)L"Now: (%d,%d)", nowPuyo[0], nowPuyo[1]);
+    DrawString(hMemDC, 0, 68, (WCHAR*)L"scene: %d", scene);
     /* {
         DrawString(hMemDC, 0, 80, (WCHAR*)L"NPuyo = {%d,%d}", nextPuyo[0], nextPuyo[1]);
         DrawString(hMemDC, 0, 100, (WCHAR*)L"NNPuyo = {%d,%d}", nextNextPuyo[0], nextNextPuyo[1]);
@@ -1843,7 +1865,8 @@ static void BattleUpdate()
         DrawString(hMemDC, 0, 180, (WCHAR*)L"Time:%f", Time);
         DrawString(hMemDC, 0, 200, (WCHAR*)L"floor = %d", fieldFloor[0]);
     }*/
-    /* {
+    /*
+     {
         for (int i = 0; i < 6; i++)
         {
             for (int j = 0; j < 12; j++)
@@ -1852,13 +1875,15 @@ static void BattleUpdate()
                 DrawString(hMemDC, 104 + i * 21, 288 - j * 20, text, (copyField[i] >> j * 3) & 0b111);
             }
         }
-    }*/
+    }
+    */
+    
     
 
     {
         static int reliability = 0;
         static bool old = true;
-        if (saveNext[0] != JudgementColor(251, 65) || saveNext[1] != JudgementColor(251, 85) || saveNextNext[0] != JudgementColor(263, 106) || saveNextNext[1] != JudgementColor(260, 125))
+        if (saveNext[0] != JudgementColor(251, 65) || saveNext[1] != JudgementColor(251, 85) || saveNextNext[0] != JudgementColor(263, 108) || saveNextNext[1] != JudgementColor(263, 122))
         {
             reliability = 0;
             if (!old) old = true;
@@ -1888,8 +1913,8 @@ static void BattleUpdate()
                 nowPuyo[1] = nextPuyo[1];
                 nextPuyo[0] = nextNextPuyo[0];
                 nextPuyo[1] = nextNextPuyo[1];
-                nextNextPuyo[0] = JudgementColor(263, 106);
-                nextNextPuyo[1] = JudgementColor(260, 125);
+                nextNextPuyo[0] = JudgementColor(263, 108);
+                nextNextPuyo[1] = JudgementColor(263, 122);
                 RaiseFlag(nextNextPuyo[0]);
                 RaiseFlag(nextNextPuyo[1]);
                 if (scene == 0 || assist) CopyArrays();
@@ -1898,6 +1923,7 @@ static void BattleUpdate()
                     drop(dropQueue[0]);
                     dropQueue.erase(dropQueue.begin());
                 }
+
                 if (scene == 1) MakeTemplate();
                 if (scene == 2) Search();
                 old = false;
@@ -1905,17 +1931,17 @@ static void BattleUpdate()
         }
         saveNext[0] = JudgementColor(251, 65);
         saveNext[1] = JudgementColor(251, 85);
-        saveNextNext[0] = JudgementColor(263, 106);
-        saveNextNext[1] = JudgementColor(260, 125);
+        saveNextNext[0] = JudgementColor(263, 108);
+        saveNextNext[1] = JudgementColor(263, 122);
        /* DrawRGBAt(251, 65);
         DrawRGBAt(251, 85);
-        DrawRGBAt(263, 106);
-        DrawRGBAt(263, 125);*/
+        DrawRGBAt(263, 108);
+        DrawRGBAt(263, 122);*/
         DrawString(hMemDC, 251, 65, (WCHAR*)L"%d", JudgementColor(251, 65));
         DrawString(hMemDC, 251, 85, (WCHAR*)L"%d", JudgementColor(251, 85));
-        DrawString(hMemDC, 263, 106, (WCHAR*)L"%d", JudgementColor(263, 106));
-        DrawString(hMemDC, 263, 125, (WCHAR*)L"%d", JudgementColor(260, 125));
-        //DrawRGBAt(260, 125);
+        DrawString(hMemDC, 263, 108, (WCHAR*)L"%d", JudgementColor(263, 108));
+        DrawString(hMemDC, 263, 128, (WCHAR*)L"%d", JudgementColor(263, 122));
+        //DrawRGBAt(263, 122);
     }
     //Aキーを押すとこの関数で初期化されます
     Init();
@@ -1923,7 +1949,7 @@ static void BattleUpdate()
     // 十字キーでカーソルを動かせます。
     //MoveCursor();
     //DrawRGBAt(cursorX, cursorY);
-    //DrawString(hMemDC, cursorX, cursorY, (WCHAR*)L"(%d, %d) : %d", cursorX, cursorY, JudgementColor(cursorX, cursorY));
+    //DrawString(hMemDC, 0, 0, (WCHAR*)L"(%d, %d) : %d", 263 + cursorX, 106+ cursorY, JudgementColor(cursorX + 263, cursorY +106));
     //JudgementColor(cursorX, cursorY);
 
     Operations();
@@ -1967,8 +1993,8 @@ void ActivityCreate()
     PPT.SetCapturePosition();
     PPT.SetCaptureSize();
 
-    cursorX = 50;
-    cursorY = 50;
+    cursorX = 104;
+    cursorY = 288;
 }
 
 void onButtonCommand(HWND hWnd, WORD code)

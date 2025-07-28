@@ -2,6 +2,7 @@
 
 #include "resource.h"
 #include <tuple>
+#include <vector>
 
 #define CLIENT_LEFT 700
 #define CLIENT_TOP 10
@@ -13,8 +14,7 @@
 #define ASSIST_HEIGHT 600
 
 struct Data {
-    std::tuple<int, int, int> shaft; // x, y, color
-    std::tuple<int, int, int> child;
+    std::vector<std::tuple<int, int, int>> puyos; // x, y, color
     int display; // 0 - ˜gü, 1 - ”¼“§–¾‚Ì“h‚è‚Â‚Ô‚µ
-    Data(std::tuple<int, int, int> shaft, std::tuple<int, int, int> child, int display) : shaft(shaft), child(child), display(display) {}
+    Data(std::vector<std::tuple<int, int, int>> puyos, int display) : puyos(puyos), display(display) {}
 };

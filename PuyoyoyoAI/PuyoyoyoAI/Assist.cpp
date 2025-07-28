@@ -12,19 +12,20 @@
 const COLORREF colors[] = {
     RGB(0,0,0),
     RGB(128,0,0),
+    RGB(128,128,255),
     RGB(40,200,128),
     RGB(255,105,180),
     RGB(128,0,200),
     RGB(0,255,255),
     RGB(255,0,165),
-    RGB(255,165,0),
-    RGB(255,105,180),
+    RGB(255,168,0),
+    RGB(50,200,200),
     RGB(220,20,60),
     RGB(117,255,0),
     RGB(0,165,255),
-    RGB(0,191,255),
-    RGB(64,224,208),
     RGB(75,0,130),
+    RGB(64,224,208),
+    RGB(0,195,225),
     RGB(200,0,40)
 };
 
@@ -78,7 +79,7 @@ void AssistPaint() {
 
     if (index != -1) {
         for (int i = 0; i < 6; i++) {
-            __int8 max = notPuyo[index];
+            unsigned __int8 max = notPuyo[index];
             for (int j = 0; j < 7; j++) {
                 if ((LABEL[index][i] >> (j * 4) & 0b1111) >= max) break;
                 DrawRectangle(memDC, i, j, (LABEL[index][i] >> (j * 4) & 0b1111));
