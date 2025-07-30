@@ -89,7 +89,7 @@ static void ImportField();
 static void MakeTemplate();
 static void Search();
 static bool Fire();
-std::string WCHARArrayToString(const WCHAR* wideCharArray) {
+static std::string WCHARArrayToString(const WCHAR* wideCharArray) {
     // •ÏŠ·‚·‚é‚½‚ß‚ÌƒTƒCƒY‚ðŽæ“¾‚·‚é
     int sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wideCharArray, -1, nullptr, 0, nullptr, nullptr);
     if (sizeNeeded <= 0) {
