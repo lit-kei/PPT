@@ -277,7 +277,7 @@ static void PressZKeyRepeatedly()
     }
 }*/
 
-static void fall(unsigned __int64* pointer, int* floor)
+static void Fall(unsigned __int64* pointer, int* floor)
 {
     for (int col = 0; col < 6; col++) {
         std::vector<unsigned int> column;
@@ -1438,7 +1438,7 @@ static int Simulation(
                     int save = ChainStart(copyFi, count, dis, erase, eraseCount);
                     if (save == 0) break;
                     score += save;
-                    fall(copyFi, copyFl);
+                    Fall(copyFi, copyFl);
                     count++;
                 }
 
@@ -1480,7 +1480,7 @@ static bool Fire() {
             int save = ChainStart(tmpField, count, dis, erase, eraseCount);
             if (save == 0) break;
             score += save;
-            fall(tmpField, tmpFloor);
+            Fall(tmpField, tmpFloor);
             count++;
         }
         if (count - 1 > best[1])//˜A½”—Dæ
