@@ -1,0 +1,8 @@
+.log
+.obj
+.suo
+.pdb
+.ipch
+.exe
+.ilk
+.tlog
