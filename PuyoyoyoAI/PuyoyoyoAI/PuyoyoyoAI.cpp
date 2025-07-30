@@ -17,6 +17,7 @@
 
 // グローバル変数:
 HINSTANCE hInst;                                // 現在のインターフェイス
+HWND hMainWnd;
 WCHAR szTitle[MAX_LOADSTRING];                  // タイトル バーのテキスト
 WCHAR szWindowClass[MAX_LOADSTRING];            // メイン ウィンドウ クラス名
 
@@ -25,6 +26,7 @@ WCHAR buf[256];
 int index = -1;
 int put[2][3] = { {-1,0,0}, {-1,0,0} };
 bool assist = true;
+bool hakka = false;
 std::vector<Data> sub;
 
 // このコード モジュールに含まれる関数の宣言を転送します:
@@ -48,10 +50,6 @@ LRESULT CALLBACK NewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
         AssistPaint();
         break;
     }
-    case WM_DESTROY:
-        AssistDestroy();
-        PostQuitMessage(0);
-        break;
     case WM_GETMINMAXINFO:
     {
         MINMAXINFO* pMinMax = (MINMAXINFO*)lParam;
@@ -110,14 +108,6 @@ LRESULT CALLBACK OverlayWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
         pMinMax->ptMaxTrackSize.y = OVERLAY_HEIGHT; // 最大高さ
         break;
     }
-    case WM_DESTROY:
-    {
-
-        HBITMAP hBitmap = (HBITMAP)SelectObject(overlayDC, overlayPrev);
-        DeleteObject(hBitmap);
-        DeleteDC(overlayDC);
-        break;
-    }
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
@@ -162,7 +152,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         L"Assist",
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT, ASSIST_WIDTH, ASSIST_HEIGHT,
-        NULL, NULL, GetModuleHandle(NULL), NULL);
+        hMainWnd, NULL, GetModuleHandle(NULL), NULL);
     //ShowWindow(hNewWnd, SW_SHOW);
 
     WNDCLASS oWc = { 0 };
@@ -180,7 +170,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         L"Overlay",
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT, 315, 360,
-        NULL, NULL, GetModuleHandle(NULL), NULL);
+        hMainWnd, NULL, GetModuleHandle(NULL), NULL);
     SetLayeredWindowAttributes(overlayWnd, RGB(255, 255, 255), 0, LWA_COLORKEY);
     ShowWindow(overlayWnd, SW_SHOW);
     UpdateWindow(overlayWnd);
@@ -241,25 +231,28 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     hInst = hInstance; // グローバル変数にインスタンス ハンドルを格納する
 
-    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+    hMainWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
-    if (!hWnd)
+    if (!hMainWnd)
     {
         return FALSE;
     }
 
-    ShowWindow(hWnd, nCmdShow);
-    UpdateWindow(hWnd);
+    ShowWindow(hMainWnd, nCmdShow);
+    UpdateWindow(hMainWnd);
 
     return TRUE;
 }
 
 static void DeleteLogFile(const std::string& filePath)
 {
-    if (std::remove(filePath.c_str()) == 0)
-    {
-        std::cout << "File deleted successfully: " << filePath << std::endl;
+    std::ofstream ofs(filePath, std::ios::trunc); // trunc = truncate（切り詰める）
+    if (ofs.is_open()) {
+        std::cout << "Log file cleared: " << filePath << std::endl;
+    }
+    else {
+        std::cerr << "Failed to open file for clearing: " << filePath << std::endl;
     }
 }
 
@@ -343,12 +336,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     break;
     case WM_DESTROY:
     {
+        AssistDestroy();
+        OverlayDestroy();
         ActivityDestroy();
 
+        HBITMAP hBitmap = (HBITMAP)SelectObject(overlayDC, overlayPrev);
+        DeleteObject(hBitmap);
+        DeleteDC(overlayDC);
         KillTimer(hWnd, 100);
 
-        HBITMAP hBitmap = (HBITMAP)SelectObject(hMemDC, hMemPrev);
-        DeleteObject(hBitmap);
+        HBITMAP hMainBitmap = (HBITMAP)SelectObject(hMemDC, hMemPrev);
+        DeleteObject(hMainBitmap);
         DeleteDC(hMemDC);
 
         PostQuitMessage(0);

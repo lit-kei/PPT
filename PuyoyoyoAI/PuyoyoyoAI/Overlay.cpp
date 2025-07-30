@@ -21,6 +21,7 @@ extern HDC overlayDC;
 extern bool assist;
 extern int put[2][3];
 extern vector<Data> sub;
+extern bool hakka;
 
 static map<int, HPEN> penMap;
 static map<int, HBRUSH> brushMap;
@@ -81,6 +82,52 @@ static void cleanupBrushes() {
     brushMap.clear();
 }
 
+std::string WCHARArrayToString(const WCHAR* wideCharArray) {
+    // 変換するためのサイズを取得する
+    int sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wideCharArray, -1, nullptr, 0, nullptr, nullptr);
+    if (sizeNeeded <= 0) {
+        // エラー処理、必要に応じて例外をスローするなど
+        return "";
+    }
+
+    // 変換先のバッファを確保する
+    std::string multiByteString(sizeNeeded - 1, '\0'); // -1 は NULL 終端文字分
+
+    // 実際に変換を行う
+    WideCharToMultiByte(CP_UTF8, 0, wideCharArray, -1, &multiByteString[0], sizeNeeded, nullptr, nullptr);
+
+    return multiByteString;
+}
+
+static void LogMessage(WCHAR* format, ...)
+{
+    // ログファイルのパス
+    const std::string logFilePath = "application.log";
+
+    // std::ofstreamを使用してファイルを開く（ファイルが存在しない場合は自動的に作成される）
+    std::ofstream logFile(logFilePath, std::ios::app); // 追記モードで開く
+
+    // ファイルが正常に開けたかチェック
+    if (logFile.is_open())
+    {
+        va_list args;
+        va_start(args, format);
+        WCHAR buf[256];
+        int len = _vsntprintf_s(buf, _ARRAYSIZE(buf), _TRUNCATE, format, args);
+        va_end(args);
+
+        std::string result = WCHARArrayToString(buf);
+
+        // メッセージを書き込む
+        logFile << result << std::endl;
+        // ファイルを閉じる
+        logFile.close();
+    }
+    else
+    {
+        std::cerr << "Failed to open log file: " << logFilePath << std::endl;
+    }
+}
 void OverlayPaint() {
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(overlayWnd, &ps);
@@ -99,7 +146,8 @@ void OverlayPaint() {
             Rectangle(memDC, 20 + j * 21, 40 + i * 20, j * 21 + 21 + 20, 60 + i * 20);
         }
     }
-    HPEN hOldPen = (HPEN)SelectObject(memDC, getPen(100));
+    HPEN pen = CreatePen(PS_SOLID, hakka ? 5 : 1, RGB(0, 0, 0));
+    HPEN hOldPen = (HPEN)SelectObject(memDC, pen);
     HBRUSH hOldBrush = (HBRUSH)SelectObject(memDC, getBrush(100));
     if (put[0][0] != -1)
     {
@@ -112,6 +160,7 @@ void OverlayPaint() {
         Rectangle(memDC, 20 + put[1][0] * 21, 40 + 240 - put[1][1] * 20, put[1][0] * 21 + 21 + 20, 60 + 240 - put[1][1] * 20);
     }
 
+
     // (1) 32bpp DIBセクションを作成
     BITMAPINFO bmi = {};
     bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -121,18 +170,34 @@ void OverlayPaint() {
     bmi.bmiHeader.biBitCount = 32;
     bmi.bmiHeader.biCompression = BI_RGB;
 
-
     void* pvBits = nullptr;
+
     HBITMAP alphaBitmap = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, &pvBits, nullptr, 0);
-    HDC alphaDC = CreateCompatibleDC(hdc);
-    HBITMAP oldAlphaBitmap = (HBITMAP)SelectObject(alphaDC, alphaBitmap);
-    if (alphaBitmap == nullptr) {
-        // エラー処理（例：ログ出力やリターン）
-        MessageBox(nullptr, L"CreateDIBSection failed!", L"Error", MB_OK | MB_ICONERROR);
+    if (alphaBitmap == NULL)
+    {
+        MessageBox(NULL, L"CreateDIBSection failed", L"Error", MB_OK | MB_ICONERROR);
         return;
     }
-    UINT32* pixels = (UINT32*)pvBits;
 
+    HDC alphaDC = CreateCompatibleDC(hdc);
+    if (alphaDC == NULL)
+    {
+        MessageBox(NULL, L"CreateCompatibleDC failed", L"Error", MB_OK | MB_ICONERROR);
+        DeleteObject(alphaBitmap);
+        return;
+    }
+
+    HGDIOBJ oldAlphaBitmap = SelectObject(alphaDC, alphaBitmap);
+    if (oldAlphaBitmap == NULL || oldAlphaBitmap == HGDI_ERROR)
+    {
+        MessageBox(NULL, L"SelectObject failed", L"Error", MB_OK | MB_ICONERROR);
+        DeleteDC(alphaDC);
+        DeleteObject(alphaBitmap);
+        return;
+    }
+
+    UINT32* pixels = (UINT32*)pvBits;
+    std::fill(pixels, pixels + (OVERLAY_WIDTH * OVERLAY_HEIGHT), 0x00000000);
 
     for (const Data& element : sub)
     {
@@ -141,6 +206,7 @@ void OverlayPaint() {
             HBRUSH oldBrush = (HBRUSH)SelectObject(memDC, getBrush(6));
             for (const auto& puyo : element.puyos)
             {
+                LogMessage((WCHAR*)L"puyo: (%d, %d, %d)", get<0>(puyo), get<1>(puyo), get<2>(puyo));
                 if (get<0>(puyo) == -1) continue;
                 HPEN oldPen = (HPEN)SelectObject(memDC, getPen(get<2>(puyo)));
 
@@ -238,6 +304,9 @@ void OverlayPaint() {
     BitBlt(hdc, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT, memDC, 0, 0, SRCCOPY);
 
     // リソース解放
+    DeleteObject(pen);
+    DeleteObject(hOldPen);
+    DeleteObject(hOldBrush);
     SelectObject(memDC, oldBitmap);
     DeleteObject(memBitmap);
     DeleteDC(memDC);
@@ -245,25 +314,10 @@ void OverlayPaint() {
     EndPaint(overlayWnd, &ps);
 }
 
+
+
 void OverlayDestroy() {
     cleanupPens();
     cleanupBrushes();
-    // ログファイルのパス
-    const string logFilePath = "application.log";
-
-    // std::ofstreamを使用してファイルを開く（ファイルが存在しない場合は自動的に作成される）
-    ofstream logFile(logFilePath, std::ios::app); // 追記モードで開く
-
-    // ファイルが正常に開けたかチェック
-    if (logFile.is_open())
-    {
-        // メッセージを書き込む
-        logFile << (string)"Pens And Brushes Are Deleted!" << std::endl;
-        // ファイルを閉じる
-        logFile.close();
-    }
-    else
-    {
-        std::cerr << "Failed to open log file: " << logFilePath << std::endl;
-    }
+    LogMessage((WCHAR*)L"Pens And Brushes Were Deleted.");
 }

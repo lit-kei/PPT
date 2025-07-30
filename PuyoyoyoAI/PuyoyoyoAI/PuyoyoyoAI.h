@@ -16,5 +16,6 @@
 struct Data {
     std::vector<std::tuple<int, int, int>> puyos; // x, y, color
     int display; // 0 - ˜gü, 1 - ”¼“§–¾‚Ì“h‚è‚Â‚Ô‚µ
-    Data(std::vector<std::tuple<int, int, int>> puyos, int display) : puyos(puyos), display(display) {}
+    int stroke;
+    Data(std::vector<std::tuple<int, int, int>> puyos, int display, int stroke) : puyos(puyos), display(display), stroke(stroke) {}
 };
