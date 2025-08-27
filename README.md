@@ -12,7 +12,7 @@
 - Windows環境（WinAPIに依存したコードであるため）
 - コンパイラ: Visual Studio 2022 など
 
-
+![ぷよぷよ](https://res.cloudinary.com/dmzc9f7bf/image/upload/w_200/v1754635110/%E3%82%B9%E3%82%AF%E3%83%AA%E3%83%BC%E3%83%B3%E3%82%B7%E3%83%A7%E3%83%83%E3%83%88_2025-07-16_172358_iylohk.png)
 
 ## 最善手の探索法
 最善手の探索には以下の関数を使い分けています。
