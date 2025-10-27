@@ -3,20 +3,20 @@
   "WorkspaceRootPath": "C:\\Users\\hiran\\OneDrive\\Desktop\\Keisuke\\programming\\visualStudio\\PPT\\PuyoyoyoAI\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{7BCB69F9-CB0F-4144-8AAF-C211F25A3E54}|PuyoyoyoAI\\PuyoyoyoAI.vcxproj|C:\\Users\\hiran\\OneDrive\\Desktop\\Keisuke\\programming\\visualStudio\\PPT\\PuyoyoyoAI\\PuyoyoyoAI\\template.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{7BCB69F9-CB0F-4144-8AAF-C211F25A3E54}|PuyoyoyoAI\\PuyoyoyoAI.vcxproj|solutionrelative:PuyoyoyoAI\\template.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{7BCB69F9-CB0F-4144-8AAF-C211F25A3E54}|PuyoyoyoAI\\PuyoyoyoAI.vcxproj|C:\\Users\\hiran\\OneDrive\\Desktop\\Keisuke\\programming\\visualStudio\\PPT\\PuyoyoyoAI\\PuyoyoyoAI\\Activity.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{7BCB69F9-CB0F-4144-8AAF-C211F25A3E54}|PuyoyoyoAI\\PuyoyoyoAI.vcxproj|solutionrelative:PuyoyoyoAI\\Activity.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7BCB69F9-CB0F-4144-8AAF-C211F25A3E54}|PuyoyoyoAI\\PuyoyoyoAI.vcxproj|C:\\Users\\hiran\\OneDrive\\Desktop\\Keisuke\\programming\\visualStudio\\PPT\\PuyoyoyoAI\\PuyoyoyoAI\\Assist.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{7BCB69F9-CB0F-4144-8AAF-C211F25A3E54}|PuyoyoyoAI\\PuyoyoyoAI.vcxproj|solutionrelative:PuyoyoyoAI\\Assist.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{7BCB69F9-CB0F-4144-8AAF-C211F25A3E54}|PuyoyoyoAI\\PuyoyoyoAI.vcxproj|C:\\Users\\hiran\\OneDrive\\Desktop\\Keisuke\\programming\\visualStudio\\PPT\\PuyoyoyoAI\\PuyoyoyoAI\\PuyoyoyoAI.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{7BCB69F9-CB0F-4144-8AAF-C211F25A3E54}|PuyoyoyoAI\\PuyoyoyoAI.vcxproj|solutionrelative:PuyoyoyoAI\\PuyoyoyoAI.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{7BCB69F9-CB0F-4144-8AAF-C211F25A3E54}|PuyoyoyoAI\\PuyoyoyoAI.vcxproj|C:\\Users\\hiran\\OneDrive\\Desktop\\Keisuke\\programming\\visualStudio\\PPT\\PuyoyoyoAI\\PuyoyoyoAI\\Assist.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{7BCB69F9-CB0F-4144-8AAF-C211F25A3E54}|PuyoyoyoAI\\PuyoyoyoAI.vcxproj|solutionrelative:PuyoyoyoAI\\Assist.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{7BCB69F9-CB0F-4144-8AAF-C211F25A3E54}|PuyoyoyoAI\\PuyoyoyoAI.vcxproj|C:\\Users\\hiran\\OneDrive\\Desktop\\Keisuke\\programming\\visualStudio\\PPT\\PuyoyoyoAI\\PuyoyoyoAI\\template.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{7BCB69F9-CB0F-4144-8AAF-C211F25A3E54}|PuyoyoyoAI\\PuyoyoyoAI.vcxproj|solutionrelative:PuyoyoyoAI\\template.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     }
   ],
   "DocumentGroupContainers": [
@@ -26,11 +26,15 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 3,
           "Children": [
             {
+              "$type": "Bookmark",
+              "Name": "ST:1:0:{e8b06f52-6d01-11d2-aa7d-00c04f990343}"
+            },
+            {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 3,
               "Title": "template.h",
               "DocumentMoniker": "C:\\Users\\hiran\\OneDrive\\Desktop\\Keisuke\\programming\\visualStudio\\PPT\\PuyoyoyoAI\\PuyoyoyoAI\\template.h",
               "RelativeDocumentMoniker": "PuyoyoyoAI\\template.h",
@@ -42,10 +46,6 @@
               "EditorCaption": ""
             },
             {
-              "$type": "Bookmark",
-              "Name": "ST:1:0:{e8b06f52-6d01-11d2-aa7d-00c04f990343}"
-            },
-            {
               "$type": "Document",
               "DocumentIndex": 2,
               "Title": "PuyoyoyoAI.cpp",
@@ -53,27 +53,27 @@
               "RelativeDocumentMoniker": "PuyoyoyoAI\\PuyoyoyoAI.cpp",
               "ToolTip": "C:\\Users\\hiran\\OneDrive\\Desktop\\Keisuke\\programming\\visualStudio\\PPT\\PuyoyoyoAI\\PuyoyoyoAI\\PuyoyoyoAI.cpp",
               "RelativeToolTip": "PuyoyoyoAI\\PuyoyoyoAI.cpp",
-              "ViewState": "AQIAAEMBAAAAAAAAAADwv08BAAAKAAAA",
+              "ViewState": "AQIAACUBAAAAAAAAAADwv08BAAAKAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-07-30T09:27:21.062Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
               "Title": "Activity.cpp",
               "DocumentMoniker": "C:\\Users\\hiran\\OneDrive\\Desktop\\Keisuke\\programming\\visualStudio\\PPT\\PuyoyoyoAI\\PuyoyoyoAI\\Activity.cpp",
               "RelativeDocumentMoniker": "PuyoyoyoAI\\Activity.cpp",
               "ToolTip": "C:\\Users\\hiran\\OneDrive\\Desktop\\Keisuke\\programming\\visualStudio\\PPT\\PuyoyoyoAI\\PuyoyoyoAI\\Activity.cpp",
               "RelativeToolTip": "PuyoyoyoAI\\Activity.cpp",
-              "ViewState": "AQIAAK4FAAAAAAAAAADgv8oFAAAQAAAA",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAABYAAAAPAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-07-30T09:24:30.756Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 1,
               "Title": "Assist.cpp",
               "DocumentMoniker": "C:\\Users\\hiran\\OneDrive\\Desktop\\Keisuke\\programming\\visualStudio\\PPT\\PuyoyoyoAI\\PuyoyoyoAI\\Assist.cpp",
               "RelativeDocumentMoniker": "PuyoyoyoAI\\Assist.cpp",
