@@ -283,13 +283,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         SetTimer(hWnd, 100, 1000 / 30, nullptr);
 
         ActivityCreate();
+        /*
         HWND button;
         button = CreateWindowA(
             "BUTTON",
             "AUTO",
             WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             640, 0, 100, 30,
-            hWnd, (HMENU)1, ((LPCREATESTRUCT)(lParam))->hInstance, NULL);
+            hWnd, (HMENU)1, ((LPCREATESTRUCT)(lParam))->hInstance, NULL);*/
 
     }
     break;
